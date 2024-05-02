@@ -25,29 +25,19 @@ void GUI_dispatcher_clear(GUI_Dispatcher* dsp)
 	dsp->uid = GUI_UID_FIRST;
 }
 
-GUI_IndexResult GUI_dispatcher_find_item_recursive(
-	GUI_Dispatcher* dsp, size_t index, GUI_ID id
-) {
-	GUI_ItemRecord* irec = &dsp->items[index];
-	if (irec->item.id == id) {
-		return (GUI_IndexResult) { GUI_OK, index };
-	}
-	for (uint16_t i = 0; i < irec->child_cnt; i++) {
-		index++;
-		GUI_IndexResult ir = GUI_dispatcher_find_item_recursive(dsp, index, id);
-		if (ir.result == GUI_OK) {
-			return ir;
-		}
-		index += dsp->items[index].subtree_cnt;
-	}
-	return (GUI_IndexResult) { GUI_ERROR };
-}
-
 GUI_IndexResult GUI_dispatcher_find_item(
 	GUI_Dispatcher* dsp, size_t uid_index, GUI_ID id
 ) {
-	GUI_UIDRecord* uidrec = &dsp->uids[uid_index];
-	return GUI_dispatcher_find_item_recursive(dsp, uidrec->item_index, id);
+	size_t index = dsp->uids[uid_index].item_index;
+	uint16_t cnt = dsp->items[index].subtree_cnt + 1;
+	while (cnt--) {
+		if (dsp->items[index].item.id == id) {
+			return (GUI_IndexResult) { GUI_OK, index };
+		}
+		index++;
+	}
+
+	return (GUI_IndexResult) { GUI_ERROR };
 }
 
 GUI_UID GUI_dispatcher_push_item(GUI_Dispatcher* dsp, GUI_Item* item)
