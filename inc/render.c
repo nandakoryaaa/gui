@@ -1,3 +1,60 @@
+GUI_Rect GUI_render_panel(GUI_Context* ctx, SDL_Rect rect, GUI_Color* color, GUI_Shape* shape)
+{
+	uint16_t bump = shape->bump_out;
+	if (bump) {
+		SDL_Rect r = { rect.x, rect.y, rect.w, bump };
+		rect.h -= bump << 1;
+		rect.w -= bump << 1;
+		rect.y += bump;
+		SDL_FillRect(ctx->surf, &r, color->light);
+		r.y += rect.h + bump;
+		SDL_FillRect(ctx->surf, &r, color->dark);
+		r.y = rect.y;
+		r.w = bump;
+		r.h = rect.h;
+		SDL_FillRect(ctx->surf, &r, color->light);
+		rect.x += bump;
+		r.x += rect.w + bump;
+		SDL_FillRect(ctx->surf, &r, color->dark);
+	}
+	bump = shape->border;
+	if (bump) {
+		SDL_Rect r = { rect.x, rect.y, rect.w, bump };
+		rect.h -= bump << 1;
+		rect.w -= bump << 1;
+		rect.y += bump;
+		SDL_FillRect(ctx->surf, &r, color->border);
+		r.y += rect.h + bump;
+		SDL_FillRect(ctx->surf, &r, color->border);
+		r.y = rect.y;
+		r.w = bump;
+		r.h = rect.h;
+		SDL_FillRect(ctx->surf, &r, color->border);
+		rect.x += bump;
+		r.x += rect.w + bump;
+		SDL_FillRect(ctx->surf, &r, color->border);
+	}
+	bump = shape->bump_in;
+	if (bump) {
+		SDL_Rect r = { rect.x, rect.y, rect.w, bump };
+		rect.h -= bump << 1;
+		rect.w -= bump << 1;
+		rect.y += bump;
+		SDL_FillRect(ctx->surf, &r, color->dark);
+		r.y += rect.h + bump;
+		SDL_FillRect(ctx->surf, &r, color->light);
+		r.y = rect.y;
+		r.w = bump;
+		r.h = rect.h;
+		SDL_FillRect(ctx->surf, &r, color->dark);
+		rect.x += bump;
+		r.x += rect.w + bump;
+		SDL_FillRect(ctx->surf, &r, color->light);
+	}
+	SDL_FillRect(ctx->surf, &rect, color->bg);
+	return rect;
+}
+
 void GUI_render_text(GUI_Context* ctx, int16_t x, int16_t y, uint32_t color, uint8_t* text, uint8_t* font)
 {
 	uint8_t bytewidth = font[0];
@@ -30,52 +87,111 @@ void GUI_render_text(GUI_Context* ctx, int16_t x, int16_t y, uint32_t color, uin
 	}
 }
 
+void GUI_render_number(GUI_Context* ctx, int16_t x, int16_t y, uint32_t color, uint32_t number, uint8_t* font)
+{
+	char digits[16];
+	digits[15] = 0;
+	size_t i = 15;
+	do {
+		digits[--i] = (number % 10) + '0';
+		number /= 10;
+	} while (number);
+
+	GUI_render_text(ctx, x, y, color, &digits[i], font);
+}
+
+void GUI_render_displaypanel(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* node)
+{
+	GUI_Color* color;
+	GUI_Shape* shape;
+
+	GUI_ItemRecord* irec = &(dsp->items[node->index]);
+	GUI_DisplayPanel* panel = (GUI_DisplayPanel*) irec->item.data;
+
+	if (irec->item.status == GUI_STATUS_ACTIVE) {
+		color = panel->color_active == NULL ? ctx->color_body_active : panel->color_active;
+	} else {
+		color = panel->color_passive == NULL ? ctx->color_body_passive : panel->color_passive;
+	}
+	shape = panel->shape == NULL ? ctx->shape_body : panel->shape;
+	GUI_Rect rect = GUI_render_panel(ctx, irec->rect, color, shape);
+	GUI_render_text(ctx, rect.x, rect.y - 20, ctx->current_color->fg, panel->label, GUI_font08x16);
+	GUI_render_number(ctx, rect.x + 4, rect.y + 4, color->fg, panel->ivalue, GUI_font08x16);
+	
+}
+
+void GUI_render_caption(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* node)
+{
+	GUI_ItemRecord* irec = &(dsp->items[node->index]);
+	GUI_Caption* cap = (GUI_Caption*) irec->item.data;
+	GUI_Color* color;
+	if (irec->item.status == GUI_STATUS_ACTIVE) {
+		color = cap->color_active == NULL ? ctx->color_caption_active : cap->color_active;
+	} else {
+		color = cap->color_passive == NULL ? ctx->color_caption_passive : cap->color_passive;
+	}
+	GUI_Shape* shape = cap->shape == NULL ? ctx->shape_caption : cap->shape;
+	uint16_t m = shape->margin;
+	GUI_Rect rect = irec->rect;
+	rect.x += m;
+	rect.y += m;
+	rect.w -= m << 1;
+	rect.h -= m << 1;
+	rect = GUI_render_panel(ctx, rect, color, shape);
+	GUI_render_panel(ctx, rect, color, shape);
+	GUI_render_text(ctx, rect.x + shape->padding, rect.y + shape->padding, color->fg, cap->title, GUI_font08x16);
+}
+
 void GUI_render_window(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* node)
 {
-	GUI_Color* color_body;
-	GUI_Color* color_title;
-	GUI_Shape* shape_body;
-	GUI_Shape* shape_title;
+	GUI_ItemRecord* irec = &(dsp->items[node->index]);
+	GUI_Window* win = (GUI_Window*) irec->item.data;
 
-	GUI_ItemRecord* ir = &(dsp->items[node->index]);
-	GUI_Window* win = (GUI_Window*) ir->item.data;
-
-	if (ir->item.status == GUI_STATUS_ACTIVE) {
-		color_body = win->color_body_active == NULL ? ctx->style_window.color_body_active : win->color_body_active;
-		color_title = win->color_title_active == NULL ? ctx->style_window.color_title_active : win->color_title_active;
+	GUI_Color* color;
+	if (irec->item.status == GUI_STATUS_ACTIVE) {
+		color = win->color_active == NULL ? ctx->color_body_active : win->color_active;
 	} else {
-		color_body = win->color_body_passive == NULL ? ctx->style_window.color_body_passive : win->color_body_passive;
-		color_title = win->color_title_passive == NULL ? ctx->style_window.color_title_passive : win->color_title_passive;
+		color = win->color_passive == NULL ? ctx->color_body_passive : win->color_passive;
 	}
-	shape_body = win->shape_body == NULL ? ctx->style_window.shape_body : win->shape_body;
-	shape_title = win->shape_title == NULL ? ctx->style_window.shape_title : win->shape_title;
-	SDL_Rect rect = ir->rect;
-    SDL_FillRect(ctx->surf, &rect, color_body->bg);
-	if (shape_body->bump_out) {
-		rect.h = shape_body->bump_out;
-		SDL_FillRect(ctx->surf, &rect, color_body->light);
-		rect.y += ir->rect.h - shape_body->bump_out;
-		SDL_FillRect(ctx->surf, &rect, color_body->dark);
-		rect.y = ir->rect.y + rect.h;
-		rect.w = rect.h;
-		rect.h = ir->rect.h - shape_body->bump_out * 2;
-		SDL_FillRect(ctx->surf, &rect, color_body->light);
-		rect.x += ir->rect.w - rect.w;
-		SDL_FillRect(ctx->surf, &rect, color_body->dark);
+	GUI_Shape* shape = win->shape == NULL ? ctx->shape_body : win->shape;
+	GUI_Rect rect = GUI_render_panel(ctx, irec->rect, color, shape);
+	ctx->current_color = color;
+}
+
+void GUI_render_button(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* node)
+{
+	GUI_Color* color;
+	GUI_Shape* shape;
+
+	GUI_ItemRecord* irec = &(dsp->items[node->index]);
+	GUI_Button* btn = (GUI_Button*) irec->item.data;
+
+	GUI_ItemStatus status = irec->item.status;
+	if (status & GUI_STATUS_ACTIVE) {
+		if (status & GUI_STATUS_DOWN) {
+			color = btn->color_down == NULL ? ctx->color_button_down : btn->color_down;
+			shape = btn->shape_down == NULL ? ctx->shape_button_down : btn->shape_down;
+		} else if (status & GUI_STATUS_HOVER) {
+			color = btn->color_hover == NULL ? ctx->color_button_hover : btn->color_hover;
+			shape = btn->shape == NULL ? ctx->shape_button : btn->shape;
+		} else {
+			color = btn->color_active == NULL ? ctx->color_body_active : btn->color_active;
+			shape = btn->shape == NULL ? ctx->shape_button : btn->shape;
+		}
+	} else {
+		color = btn->color_passive == NULL ? ctx->color_body_passive : btn->color_passive;
+		shape = btn->shape == NULL ? ctx->shape_button : btn->shape;
 	}
-	rect.x = ir->rect.x + shape_title->margin;
-	rect.y = ir->rect.y + shape_title->margin;
-	rect.w = ir->rect.w - shape_title->margin * 2;
-	rect.h = 16 + shape_title->padding * 2;
-    SDL_FillRect(ctx->surf, &rect, color_title->bg);
-	GUI_render_text(ctx, rect.x + shape_title->padding, rect.y + shape_title->padding, color_title->fg, win->title, GUI_font08x16);
+	GUI_Rect rect = GUI_render_panel(ctx, irec->rect, color, shape);
+	uint16_t len = strlen(btn->text);
+	GUI_render_text(ctx, rect.x + ((rect.w - len * 8) >> 1), rect.y + ((rect.w - 16) >> 1) + shape->margin, color->fg, btn->text, GUI_font08x16);
 }
 
 void GUI_render_checkbox(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* node)
 {
 	GUI_ItemRecord* irec = &dsp->items[node->index];
 	GUI_Checkbox* cb = (GUI_Checkbox*) irec->item.data;
-	GUI_Color* color_active = ctx->style_window.color_body_active;
+	GUI_Color* color_active = ctx->color_body_active;
 	GUI_Rect rect = irec->rect;
 	SDL_FillRect(ctx->surf, &rect, color_active->fg);
 	rect.x += 2;
@@ -84,10 +200,10 @@ void GUI_render_checkbox(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* no
 	rect.h -= 4;
 	SDL_FillRect(ctx->surf, &rect, color_active->light);
 	if (irec->item.status & GUI_STATUS_SELECTED) {
-		rect.x += 2;
-		rect.y += 2;
-		rect.w -= 4;
-		rect.h -= 4;
+		rect.x += (rect.w - 8) >> 1;
+		rect.y += (rect.h - 8) >> 1;
+		rect.w = 8;
+		rect.h = 8;
 		SDL_FillRect(ctx->surf, &rect, color_active->fg);
 	}
 	GUI_render_text(
@@ -98,61 +214,74 @@ void GUI_render_checkbox(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* no
 
 void GUI_render_group(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* node)
 {
-	GUI_ItemRecord* ir = &(dsp->items[node->index]);
-	GUI_GenericGroup* group = (GUI_GenericGroup*) ir->item.data;
-	uint16_t x = ir->rect.x + 2;
-	uint16_t y = ir->rect.y + 2;
-	uint16_t w = ir->rect.w - 4;
-	uint16_t h = ir->rect.h - 4;
-	GUI_Color* color_passive = ctx->style_window.color_body_passive;
-	SDL_FillRect(ctx->surf, &(SDL_Rect) { x, y, w, 2 }, color_passive->dark);
-	SDL_FillRect(ctx->surf, &(SDL_Rect) { x, y + h, w, 2 }, color_passive->dark);
-	SDL_FillRect(ctx->surf, &(SDL_Rect) { x, y, 2, h }, color_passive->dark);
-	SDL_FillRect(ctx->surf, &(SDL_Rect) { x + w, y, 2, h }, color_passive->dark);
-	GUI_render_text(ctx, x, y - 20, color_passive->dark, group->title, GUI_font08x16);
+	GUI_ItemRecord* irec = &(dsp->items[node->index]);
+	GUI_GenericGroup* group = (GUI_GenericGroup*) irec->item.data;
+	uint16_t x = irec->rect.x + 2;
+	uint16_t y = irec->rect.y + 2;
+	uint16_t w = irec->rect.w - 4;
+	uint16_t h = irec->rect.h - 4;
+	GUI_Color* color = ctx->color_body_passive;
+	SDL_FillRect(ctx->surf, &(SDL_Rect) { x, y, w, 2 }, color->dark);
+	SDL_FillRect(ctx->surf, &(SDL_Rect) { x, y + h, w, 2 }, color->dark);
+	SDL_FillRect(ctx->surf, &(SDL_Rect) { x, y, 2, h }, color->dark);
+	SDL_FillRect(ctx->surf, &(SDL_Rect) { x + w, y, 2, h }, color->dark);
+	GUI_render_text(ctx, x, y - 20, color->dark, group->title, GUI_font08x16);
 }
 
 void GUI_render_tabgroup(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* node)
 {
 	size_t item_index = node->index;
-	GUI_ItemRecord* ir = &(dsp->items[item_index]);
-	GUI_Item* item = &ir->item;
-	GUI_TabGroup* tg = (GUI_TabGroup*) item->data;
+	GUI_ItemRecord* irec = &(dsp->items[item_index]);
+	GUI_TabGroup* tg = (GUI_TabGroup*) irec->item.data;
 
-	uint16_t x = ir->rect.x + 2;
-	uint16_t y = ir->rect.y + 2;
-	uint16_t w = ir->rect.w - 4;
-	uint16_t h = tg->head_h;
+	uint32_t cp_dark = ctx->color_body_passive->dark;
+	uint32_t ca_dark = ctx->color_body_active->dark;
+	uint32_t ca_light = ctx->color_body_active->light;
+	uint32_t ca_fg = ctx->color_body_active->fg;
 
-	uint16_t tab_width = w / ir->child_cnt;
+	uint16_t child_cnt = irec->child_cnt;
+	uint16_t current = tg->current;
+	uint16_t tab_width = (irec->rect.w - 4) / child_cnt;
+	uint16_t head_h = tg->head_h;
+	uint16_t x = irec->rect.x;
+	uint16_t y = irec->rect.y;
+	uint16_t baseline = y + ((head_h - 18) >> 1);
+
+	SDL_Rect rect_v = { x + 2, y + 2, 2, head_h - 2 };
+	SDL_Rect rect_h = { x + 4, y, tab_width - 4, 2 };
+
 	item_index++;
-	SDL_Rect rect;
-	uint16_t i;
-	GUI_Color* color_passive = ctx->style_window.color_body_passive;
-	GUI_Color* color_active = ctx->style_window.color_body_active;
-	for (i = 0; i < tg->current; i++) {
-		SDL_FillRect(ctx->surf, &(SDL_Rect) { x + i * tab_width, y, tab_width - 2, 2 }, color_passive->dark);
-		SDL_FillRect(ctx->surf, &(SDL_Rect) { x + i * tab_width, y + 2, 2, h - 4 }, color_passive->dark);
+	for (uint16_t i = 0; i < current; i++) {
 		GUI_GenericGroup* tab = (GUI_GenericGroup*) dsp->items[item_index].item.data;
-		GUI_render_text(ctx, x + i * tab_width + 4, y + 4, color_passive->dark, tab->title, GUI_font08x16);
+		GUI_render_text(ctx, rect_h.x + 4, baseline, cp_dark, tab->title, GUI_font08x16);
+		SDL_FillRect(ctx->surf, &rect_v, cp_dark);
+		SDL_FillRect(ctx->surf, &rect_h, cp_dark);
+		rect_v.x += tab_width;
+		rect_h.x += tab_width;
 		item_index += 1 + dsp->items[item_index].subtree_cnt;
 	}
-	SDL_FillRect(ctx->surf, &(SDL_Rect) { x + 2, y + h, tab_width * tg->current, 2 }, color_active->light);
-	SDL_FillRect(ctx->surf, &(SDL_Rect) { x + 2 + tab_width * tg->current, y + 2, 2, h }, color_active->light);
-	SDL_FillRect(ctx->surf, &(SDL_Rect) { x + 2 + tab_width * tg->current, y, tab_width, 2 }, color_active->light);
-	SDL_FillRect(ctx->surf, &(SDL_Rect) { x + 2 + tab_width * tg->current + tab_width, y, 2, h - 2 }, color_passive->dark);
-	SDL_FillRect(ctx->surf, &(SDL_Rect) { x + 2 + tab_width * tg->current + tab_width, y + h - 2,
-		(ir->child_cnt - 1 - tg->current) * tab_width - 2, 2 }, color_passive->dark);
+
 	GUI_GenericGroup* tab = (GUI_GenericGroup*) dsp->items[item_index].item.data;
-	GUI_render_text(ctx, x + 2 + tab_width * tg->current + 4, y + 4, color_active->fg, tab->title, GUI_font08x16);
-	
-	item_index += 1 + dsp->items[item_index].subtree_cnt;
-	for (i = tg->current + 1; i < ir->child_cnt; i++) {
-		SDL_FillRect(ctx->surf, &(SDL_Rect) { x + i * tab_width + 6, y, tab_width - 8, 2 }, color_passive->dark);
-		SDL_FillRect(ctx->surf, &(SDL_Rect) { x + i * tab_width + tab_width - 4, y + 2, 2, h - 4 }, color_passive->dark);
-		GUI_GenericGroup* tab = (GUI_GenericGroup*) dsp->items[item_index].item.data;
-		GUI_render_text(ctx, x + i * tab_width + 6, y + 4, color_passive->dark, tab->title, GUI_font08x16);
+	GUI_render_text(ctx, rect_h.x + 4, baseline, ca_fg, tab->title, GUI_font08x16);
+	SDL_FillRect(ctx->surf, &rect_v, ca_light);
+	SDL_FillRect(ctx->surf, &(SDL_Rect){ x, y + head_h, rect_v.x - x, 2 }, ca_light);
+	SDL_FillRect(ctx->surf, &rect_h, ca_light);
+	rect_v.x += tab_width - 2;
+	SDL_FillRect(ctx->surf, &rect_v, ca_dark);
+	SDL_FillRect(
+		ctx->surf, &(SDL_Rect){ rect_v.x + 2, y + head_h, x + irec->rect.w - rect_v.x, 2 }, ca_light
+	);
+	rect_h.x += tab_width;
+	rect_v.x += tab_width;
+
+	for (uint16_t i = current + 1; i < child_cnt; i++) {
 		item_index += 1 + dsp->items[item_index].subtree_cnt;
+		GUI_GenericGroup* tab = (GUI_GenericGroup*) dsp->items[item_index].item.data;
+		GUI_render_text(ctx, rect_h.x + 4, baseline, cp_dark, tab->title, GUI_font08x16);
+		SDL_FillRect(ctx->surf, &rect_v, cp_dark);
+		SDL_FillRect(ctx->surf, &rect_h, cp_dark);
+		rect_v.x += tab_width;
+		rect_h.x += tab_width;
 	}
 }
 
@@ -169,6 +298,9 @@ void GUI_render_item_recursive(
 		case GUI_ITEM_WINDOW:
 			GUI_render_window(dsp, ctx, node);
 			break;
+		case GUI_ITEM_CAPTION:
+			GUI_render_caption(dsp, ctx, node);
+			break;
 		case GUI_ITEM_TABGROUP:
 			GUI_render_tabgroup(dsp, ctx, node);
 			break;
@@ -178,6 +310,13 @@ void GUI_render_item_recursive(
 		case GUI_ITEM_CHECKBOX:
 			GUI_render_checkbox(dsp, ctx, node);
 			break;
+		case GUI_ITEM_DISPLAYPANEL:
+			GUI_render_displaypanel(dsp, ctx, node);
+			break;
+		case GUI_ITEM_BUTTON:
+			GUI_render_button(dsp, ctx, node);
+			break;
+
 	}
 
 	if (ir->child_cnt) {
