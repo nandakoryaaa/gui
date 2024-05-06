@@ -1,35 +1,6 @@
-GUI_Color color_body = {
-	.bg = 0x999999, .fg = 0x000000, .light = 0xe0e0e0, .dark = 0x404040,
-	.border = 0xccbb40, .outline = 0
-};
-GUI_Color color_caption = {
-	.bg = 0x004040, .fg = 0xffffff, .light = 0x009090, .dark = 0x000f0f,
-	.border = 0x004040, .outline = 0
-};
-GUI_Color color_button_hover = {
-	.bg = 0xb0b0b0, .fg = 0xffffff, .light = 0xe0e0e0, .dark = 0x404040,
-	.border = 0xccbb40, .outline = 0
-};
-GUI_Color color_button_down = {
-	.bg = 0x808080, .fg = 0xffffff, .light = 0xe0e0e0, .dark = 0x404040,
-	.border = 0xccbb40, .outline = 0
-};
-GUI_Shape shape_body = {
-	.bump_out = 4, .bump_in = 4, .border = 4, .outline = 0, .radius = 0, .padding = 0, .margin = 0
-};
-GUI_Shape shape_caption = {
-	.bump_out = 0, .bump_in = 1, .border = 0, .outline = 0, .radius = 0, .padding = 8, .margin = 4
-};
-GUI_Shape shape_button = {
-	.bump_out = 2, .bump_in = 0, .border = 0, .outline = 0, .radius = 0, .padding = 0, .margin = 0
-};
-GUI_Shape shape_button_down = {
-	.bump_out = 0, .bump_in = 2, .border = 0, .outline = 0, .radius = 0, .padding = 0, .margin = 2
-};
-
 GUI_ItemTree layout = {
 	.item = {
-		ID_WIN1, GUI_ITEM_WINDOW, GUI_STATUS_VSDA, { 100, 100, 400, 400 },
+		ID_WIN1, GUI_ITEM_WINDOW, GUI_STATUS_VSDA, { 280, 160, 400, 400 },
 		&(GUI_Window) {
 			.color_active = NULL,
 			.color_passive = NULL,
@@ -42,8 +13,11 @@ GUI_ItemTree layout = {
 	.subtree = &(GUI_ItemTree[]) {
 		{
 			.item = {
-				ID_CAPTION1, GUI_ITEM_CAPTION, GUI_STATUS_VSDA, { 0, 0, 0, 40 },
-				&(GUI_Caption) { NULL, NULL, NULL, NULL, "Hello GUI" }
+				ID_CAPTION, GUI_ITEM_CAPTION, GUI_STATUS_VSDA, { 0, 0, 0, 40 },
+				&(GUI_Caption) {
+					&(GUI_Color) { .bg = 0x808080, .fg = 0xffffff },
+					NULL, NULL, NULL, "Hello GUI"
+				}
 			},
 			.child_cnt = 1,
 			.subtree = &(GUI_ItemTree) {
@@ -67,11 +41,11 @@ GUI_ItemTree layout = {
 						ID_TAB1, GUI_ITEM_TAB, GUI_STATUS_VSA, { 0, 0, 0, 0 },
 						&(GUI_GenericGroup) { "Tab 1", NULL }
 					},
-					.child_cnt = 4,
+					.child_cnt = 6,
 					.subtree = &(GUI_ItemTree[]) {
 						{
 							.item = {
-								ID_PANEL1, GUI_ITEM_DISPLAYPANEL, GUI_STATUS_VSA, { 120, 80, 120, 32 },
+								ID_PANEL1, GUI_ITEM_DISPLAYPANEL, GUI_STATUS_VSA, { 120, 60, 120, 32 },
 								&(GUI_DisplayPanel) {
 									.color_active = &(GUI_Color) { .bg = 0, .fg = 0xffffff, .light = 0xcccccc, .dark = 0x333333 },
 									.color_passive = &(GUI_Color) { .bg = 0, .fg = 0xffffff, .light = 0xcccccc, .dark = 0x333333 },
@@ -84,7 +58,7 @@ GUI_ItemTree layout = {
 							.child_cnt = 0
 						}, {
 							.item = {
-								ID_BTN1, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 80, 80, 32, 32 },
+								ID_BTN1, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 80, 60, 32, 32 },
 								&(GUI_Button) {
 									.text = "-"
 								}
@@ -92,7 +66,7 @@ GUI_ItemTree layout = {
 							.child_cnt = 0
 						}, {
 							.item = {
-								ID_BTN2, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 248, 80, 32, 32 },
+								ID_BTN2, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 248, 60, 32, 32 },
 								&(GUI_Button) {
 									.text = "+"
 								}
@@ -100,10 +74,18 @@ GUI_ItemTree layout = {
 							.child_cnt = 0
 						}, {
 							.item = {
-								ID_TEST, GUI_ITEM_CHECKBOX, GUI_STATUS_VSA, { 80, 140, 32, 32 },
-								&(GUI_Checkbox) {
-									.label = "test checkbox"
-								}
+								ID_HSLIDER_R, GUI_ITEM_HSLIDER, GUI_STATUS_VSDA, { 80, 120, 120, 32 },
+								&(GUI_Slider) { .min = 0, .max = 255, .value = 0x80 }
+							}
+						}, {
+							.item = {
+								ID_HSLIDER_G, GUI_ITEM_HSLIDER, GUI_STATUS_VSDA, { 80, 160, 120, 32 },
+								&(GUI_Slider) { .min = 0, .max = 255, .value = 0x80 }
+							}
+						}, {
+							.item = {
+								ID_HSLIDER_B, GUI_ITEM_HSLIDER, GUI_STATUS_VSDA, { 80, 200, 120, 32 },
+								&(GUI_Slider) { .min = 0, .max = 255, .value = 0x80 }
 							}
 						}
 					}[0]

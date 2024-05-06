@@ -1,7 +1,8 @@
 typedef enum {
 	GUI_ITEM_NONE, GUI_ITEM_WINDOW, GUI_ITEM_CAPTION, GUI_ITEM_BUTTON,
 	GUI_ITEM_GROUP, GUI_ITEM_TABGROUP, GUI_ITEM_TAB, GUI_ITEM_CHECKBOX,
-	GUI_ITEM_DISPLAYPANEL
+	GUI_ITEM_DISPLAYPANEL, GUI_ITEM_HSLIDER,
+	GUI_ITEM_COLORPICKER
 } GUI_ItemType;
 
 typedef struct {
@@ -76,3 +77,10 @@ typedef struct {
 	char *svalue;
 	uint32_t ivalue;
 } GUI_DisplayPanel;
+
+typedef struct {
+	uint32_t value;
+	uint32_t min;
+	uint32_t max;
+	uint16_t margin;
+} GUI_Slider;

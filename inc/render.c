@@ -106,9 +106,9 @@ void GUI_render_displaypanel(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode
 	GUI_Shape* shape;
 
 	GUI_ItemRecord* irec = &(dsp->items[node->index]);
-	GUI_DisplayPanel* panel = (GUI_DisplayPanel*) irec->item.data;
+	GUI_DisplayPanel* panel = (GUI_DisplayPanel*) irec->item.element;
 
-	if (irec->item.status == GUI_STATUS_ACTIVE) {
+	if (irec->item.status & GUI_STATUS_ACTIVE) {
 		color = panel->color_active == NULL ? ctx->color_body_active : panel->color_active;
 	} else {
 		color = panel->color_passive == NULL ? ctx->color_body_passive : panel->color_passive;
@@ -123,9 +123,9 @@ void GUI_render_displaypanel(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode
 void GUI_render_caption(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* node)
 {
 	GUI_ItemRecord* irec = &(dsp->items[node->index]);
-	GUI_Caption* cap = (GUI_Caption*) irec->item.data;
+	GUI_Caption* cap = (GUI_Caption*) irec->item.element;
 	GUI_Color* color;
-	if (irec->item.status == GUI_STATUS_ACTIVE) {
+	if (irec->item.status & GUI_STATUS_ACTIVE) {
 		color = cap->color_active == NULL ? ctx->color_caption_active : cap->color_active;
 	} else {
 		color = cap->color_passive == NULL ? ctx->color_caption_passive : cap->color_passive;
@@ -138,17 +138,16 @@ void GUI_render_caption(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* nod
 	rect.w -= m << 1;
 	rect.h -= m << 1;
 	rect = GUI_render_panel(ctx, rect, color, shape);
-	GUI_render_panel(ctx, rect, color, shape);
 	GUI_render_text(ctx, rect.x + shape->padding, rect.y + shape->padding, color->fg, cap->title, GUI_font08x16);
 }
 
 void GUI_render_window(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* node)
 {
 	GUI_ItemRecord* irec = &(dsp->items[node->index]);
-	GUI_Window* win = (GUI_Window*) irec->item.data;
+	GUI_Window* win = (GUI_Window*) irec->item.element;
 
 	GUI_Color* color;
-	if (irec->item.status == GUI_STATUS_ACTIVE) {
+	if (irec->item.status & GUI_STATUS_ACTIVE) {
 		color = win->color_active == NULL ? ctx->color_body_active : win->color_active;
 	} else {
 		color = win->color_passive == NULL ? ctx->color_body_passive : win->color_passive;
@@ -164,7 +163,7 @@ void GUI_render_button(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* node
 	GUI_Shape* shape;
 
 	GUI_ItemRecord* irec = &(dsp->items[node->index]);
-	GUI_Button* btn = (GUI_Button*) irec->item.data;
+	GUI_Button* btn = (GUI_Button*) irec->item.element;
 
 	GUI_ItemStatus status = irec->item.status;
 	if (status & GUI_STATUS_ACTIVE) {
@@ -187,10 +186,34 @@ void GUI_render_button(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* node
 	GUI_render_text(ctx, rect.x + ((rect.w - len * 8) >> 1), rect.y + ((rect.w - 16) >> 1) + shape->margin, color->fg, btn->text, GUI_font08x16);
 }
 
+void GUI_render_slider(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* node)
+{
+	GUI_Color* color_bg = ctx->color_button_down;
+	GUI_Shape* shape_bg = ctx->shape_button_down;
+	GUI_Shape* shape = ctx->shape_button;
+	GUI_Color* color;
+
+	GUI_ItemRecord* irec = &(dsp->items[node->index]);
+	GUI_Slider* slider = (GUI_Slider*) irec->item.element;
+
+	GUI_ItemStatus status = irec->item.status;
+	color = status & GUI_STATUS_ACTIVE ? ctx->color_body_active : ctx->color_body_passive;
+	uint16_t h = irec->rect.h;
+	GUI_Rect rect = GUI_render_panel(ctx, irec->rect, color_bg, shape_bg);
+	/** @todo add init phase for one-time adjustments */
+	slider->margin = h - rect.h;
+	uint32_t range = slider->max - slider->min;
+	uint16_t pos = slider->value - slider->min;
+	uint16_t w = rect.w - rect.h;
+	rect.x += pos * w / range;
+	rect.w = rect.h;
+	GUI_render_panel(ctx, rect, color, shape);
+}
+
 void GUI_render_checkbox(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* node)
 {
 	GUI_ItemRecord* irec = &dsp->items[node->index];
-	GUI_Checkbox* cb = (GUI_Checkbox*) irec->item.data;
+	GUI_Checkbox* cb = (GUI_Checkbox*) irec->item.element;
 	GUI_Color* color_active = ctx->color_body_active;
 	GUI_Rect rect = irec->rect;
 	SDL_FillRect(ctx->surf, &rect, color_active->fg);
@@ -215,7 +238,7 @@ void GUI_render_checkbox(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* no
 void GUI_render_group(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* node)
 {
 	GUI_ItemRecord* irec = &(dsp->items[node->index]);
-	GUI_GenericGroup* group = (GUI_GenericGroup*) irec->item.data;
+	GUI_GenericGroup* group = (GUI_GenericGroup*) irec->item.element;
 	uint16_t x = irec->rect.x + 2;
 	uint16_t y = irec->rect.y + 2;
 	uint16_t w = irec->rect.w - 4;
@@ -232,7 +255,7 @@ void GUI_render_tabgroup(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* no
 {
 	size_t item_index = node->index;
 	GUI_ItemRecord* irec = &(dsp->items[item_index]);
-	GUI_TabGroup* tg = (GUI_TabGroup*) irec->item.data;
+	GUI_TabGroup* tg = (GUI_TabGroup*) irec->item.element;
 
 	uint32_t cp_dark = ctx->color_body_passive->dark;
 	uint32_t ca_dark = ctx->color_body_active->dark;
@@ -252,7 +275,7 @@ void GUI_render_tabgroup(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* no
 
 	item_index++;
 	for (uint16_t i = 0; i < current; i++) {
-		GUI_GenericGroup* tab = (GUI_GenericGroup*) dsp->items[item_index].item.data;
+		GUI_GenericGroup* tab = (GUI_GenericGroup*) dsp->items[item_index].item.element;
 		GUI_render_text(ctx, rect_h.x + 4, baseline, cp_dark, tab->title, GUI_font08x16);
 		SDL_FillRect(ctx->surf, &rect_v, cp_dark);
 		SDL_FillRect(ctx->surf, &rect_h, cp_dark);
@@ -261,7 +284,7 @@ void GUI_render_tabgroup(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* no
 		item_index += 1 + dsp->items[item_index].subtree_cnt;
 	}
 
-	GUI_GenericGroup* tab = (GUI_GenericGroup*) dsp->items[item_index].item.data;
+	GUI_GenericGroup* tab = (GUI_GenericGroup*) dsp->items[item_index].item.element;
 	GUI_render_text(ctx, rect_h.x + 4, baseline, ca_fg, tab->title, GUI_font08x16);
 	SDL_FillRect(ctx->surf, &rect_v, ca_light);
 	SDL_FillRect(ctx->surf, &(SDL_Rect){ x, y + head_h, rect_v.x - x, 2 }, ca_light);
@@ -276,7 +299,7 @@ void GUI_render_tabgroup(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemNode* no
 
 	for (uint16_t i = current + 1; i < child_cnt; i++) {
 		item_index += 1 + dsp->items[item_index].subtree_cnt;
-		GUI_GenericGroup* tab = (GUI_GenericGroup*) dsp->items[item_index].item.data;
+		GUI_GenericGroup* tab = (GUI_GenericGroup*) dsp->items[item_index].item.element;
 		GUI_render_text(ctx, rect_h.x + 4, baseline, cp_dark, tab->title, GUI_font08x16);
 		SDL_FillRect(ctx->surf, &rect_v, cp_dark);
 		SDL_FillRect(ctx->surf, &rect_h, cp_dark);
@@ -316,7 +339,9 @@ void GUI_render_item_recursive(
 		case GUI_ITEM_BUTTON:
 			GUI_render_button(dsp, ctx, node);
 			break;
-
+		case GUI_ITEM_HSLIDER:
+			GUI_render_slider(dsp, ctx, node);
+			break;
 	}
 
 	if (ir->child_cnt) {

@@ -24,7 +24,7 @@ typedef enum {
 	GUI_STATUS_HOVER = 64, GUI_STATUS_DOWN = 128,
 	GUI_STATUS_DRAG = 256, GUI_STATUS_SELECTED = 512,
 	GUI_STATUS_VA = 6, GUI_STATUS_VSA = 14, GUI_STATUS_VSHA = 30,
-	GUI_STATUS_VSDA = 46
+	GUI_STATUS_VSDA = 46, GUI_STATUS_VSDHA = 62
 } GUI_ItemStatus;
 
 typedef struct GUI_Item {
@@ -32,7 +32,7 @@ typedef struct GUI_Item {
 	GUI_ItemType type;
 	GUI_ItemStatus status;
 	GUI_Rect rect;
-	void* data;
+	void* element;
 } GUI_Item;
 
 typedef struct {
