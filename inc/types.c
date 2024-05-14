@@ -10,6 +10,10 @@ typedef enum {
 	GUI_EVENT_NONE, GUI_EVENT_MOVE, GUI_EVENT_DOWN, GUI_EVENT_UP
 } GUI_EventType;
 
+//typedef enum {
+//	GUI_COMMAND_NONE, GUI_COMMAND_CLOSE, GUI_COMMAND_ADD
+//} GUI_Command;
+
 typedef struct {
 	GUI_EventType type;
 	uint16_t x;
@@ -27,12 +31,39 @@ typedef enum {
 	GUI_STATUS_VSDA = 46, GUI_STATUS_VSDHA = 62
 } GUI_ItemStatus;
 
+typedef enum {
+	GUI_ITEM_NONE, GUI_ITEM_WINDOW, GUI_ITEM_CAPTION, GUI_ITEM_BUTTON,
+	GUI_ITEM_GROUP, GUI_ITEM_TABGROUP, GUI_ITEM_TAB, GUI_ITEM_CHECKBOX,
+	GUI_ITEM_DISPLAYPANEL, GUI_ITEM_HSLIDER, GUI_ITEM_CONTENTPANE,
+	GUI_ITEM_PLACEHOLDER, GUI_ITEM_BOUNDINGBOX
+} GUI_ItemType;
+
+typedef struct {
+	uint32_t bg;
+	uint32_t fg;
+	uint32_t light;
+	uint32_t dark;
+	uint32_t border;
+	uint32_t outline;
+} GUI_Color;
+
+typedef struct {
+	uint8_t bump_out;
+	uint8_t bump_in;
+	uint8_t border;
+	uint8_t outline;
+	uint8_t radius;
+	uint8_t padding;
+	uint8_t margin;
+} GUI_Shape;
+
 typedef struct GUI_Item {
 	uint32_t id;
 	GUI_ItemType type;
 	GUI_ItemStatus status;
 	GUI_Rect rect;
 	void* element;
+	GUI_ID parent_id;
 } GUI_Item;
 
 typedef struct {
@@ -59,6 +90,7 @@ typedef struct {
 typedef struct {
 	GUI_Item item;
 	GUI_Rect rect;
+	size_t parent_offset;
 	size_t child_cnt;
 	size_t subtree_cnt;
 } GUI_ItemRecord;
@@ -68,12 +100,6 @@ struct GUI_ItemTree {
 	GUI_Item item;
 	uint16_t child_cnt;
 	GUI_ItemTree* subtree;
-};
-
-typedef struct GUI_ItemNode GUI_ItemNode;
-struct GUI_ItemNode {
-	GUI_ItemNode* parent;
-	size_t index;
 };
 
 typedef struct {
@@ -99,14 +125,14 @@ typedef struct {
 
 typedef struct {
 	size_t uid_cnt;
-	size_t item_cnt;
+	uint16_t item_cnt;
 	GUI_UID uid;
 	GUI_UIDRecord uids[GUI_MAX_ITEMS];
 	GUI_ItemRecord items[GUI_MAX_ITEMS];
 	GUI_ItemStatus state;
 	size_t last_uid_index;
 	size_t last_index;
+	size_t last_target;
 	uint16_t origin_x;
 	uint16_t origin_y;
 } GUI_Dispatcher;
-

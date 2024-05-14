@@ -14,17 +14,19 @@
 #define WIN_H 720
 
 typedef enum {
-	ID_BTN_CLOSE, ID_WIN1, ID_CAPTION, ID_TABGROUP,
+	ID_NONE, ID_BTN_CLOSE, ID_WIN1, ID_CAPTION, ID_TABGROUP,
 	ID_TAB1, ID_TAB2, ID_TAB3,
 	ID_T2G1, ID_T3G1,
 	ID_T2G1_CB1, ID_T2G1_CB2, ID_T2G1_CB3,
 	ID_T3G1_CB1, ID_T3G1_CB2, ID_T3G1_CB3,
 	ID_PANEL1, ID_BTN1, ID_BTN2,
-	ID_TEST, ID_HSLIDER_R, ID_HSLIDER_G, ID_HSLIDER_B
+	ID_TEST, ID_HSLIDER_R, ID_HSLIDER_G, ID_HSLIDER_B,
+	ID_HSLIDERPANE,
+	ID_SBTN1, ID_SBTN2
 } GUI_ID;
 
-#include "inc/elements.c"
 #include "inc/types.c"
+#include "inc/elements.c"
 #include "inc/dispatcher.c"
 #include "inc/render.c"
 
@@ -80,7 +82,18 @@ void process_win1_move(GUI_Dispatcher* dsp, struct ModelWin1* model)
 
 void process_win1_up(GUI_Dispatcher* dsp, struct ModelWin1* model)
 {
-	GUI_Item item = dsp->items[dsp->last_index].item;
+	size_t index = dsp->last_index;
+	GUI_ItemRecord* irec = &dsp->items[index];
+	
+	if (irec->item.type == GUI_ITEM_BUTTON) {
+		//GUI_Button* btn = irec->item.element;
+		if (irec->item.parent_id) {
+			index -= irec->parent_offset;
+			irec = &dsp->items[index];
+		}
+	}
+
+	GUI_Item item = irec->item;
 	if (item.type == GUI_ITEM_BUTTON) {
 		if (item.id == ID_BTN1 || item.id == ID_BTN2) {
 			GUI_IndexResult ir = GUI_dispatcher_find_item(dsp, dsp->last_uid_index, ID_PANEL1);
@@ -104,6 +117,11 @@ void process_win1_up(GUI_Dispatcher* dsp, struct ModelWin1* model)
 				break;
 			}
 		}
+	} else if (
+		item.type == GUI_ITEM_HSLIDER
+		&& (item.id == ID_HSLIDER_R || item.id == ID_HSLIDER_G || item.id == ID_HSLIDER_B)
+	) {
+		set_caption_color_win1(dsp);
 	}
 }
 
