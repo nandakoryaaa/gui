@@ -95,41 +95,65 @@ GUI_ItemTree layout = {
 				}, {
 					.item = {
 						ID_NONE, GUI_ITEM_TAB, GUI_STATUS_VSA, { 0, 0, 0, 0 },
-						&(GUI_GenericGroup) { "Tab 2", NULL }
+						&(GUI_GenericGroup) { "Tab 2" }
 					},
 					.child_cnt = 1,
 					.subtree = &(GUI_ItemTree) {
 						.item = {
-							999, GUI_ITEM_CONTENTPANE, GUI_STATUS_VSA, { 80, 80, 194, 140 },
-							&(GUI_ContentPane) { { 0, 0, 0, 0 } }
+							ID_NONE, GUI_ITEM_CONTENTPANE, GUI_STATUS_VSDA, { 40, 40, 292, 200 },
+							&(GUI_ContentPane) { .offset_rect = { 0, 0, 0, 1 } }
 						},
 						.child_cnt = 2,
 						.subtree = &(GUI_ItemTree[]) {
 							{
 								{
-									ID_NONE, GUI_ITEM_BOUNDINGBOX, GUI_STATUS_VSA, { 0, 0, 240, 80 },
-									NULL
+									ID_NONE, GUI_ITEM_CONTENTPANE, GUI_STATUS_VSDA, { 10, 10, 272, 80 },
+									&(GUI_ContentPane) { .offset_rect = { 0, 0, 1, 0 } }, .return_state = GUI_STATUS_DRAG
 								},
-								3, &(GUI_ItemTree[]) {
+								.child_cnt = 3,
+								.subtree = &(GUI_ItemTree[]) {
 									{
 										{
-											ID_NONE, GUI_ITEM_PLACEHOLDER, GUI_STATUS_VA, { 10, 10, 64, 64 },
-											&(GUI_Placeholder) { .color = 0xff0000 }
+											ID_NONE, GUI_ITEM_PLACEHOLDER, GUI_STATUS_VDA, { 10, 10, 64, 64 },
+											&(GUI_Placeholder) { .color = 0xff0000 }, .return_state = GUI_STATUS_DRAG
 										}
 									}, {
-											{
-												ID_NONE, GUI_ITEM_PLACEHOLDER, GUI_STATUS_VA, { 90, 10, 64, 64 },
-												&(GUI_Placeholder) { .color = 0x00ff00 }
-											}
+										{
+											ID_NONE, GUI_ITEM_PLACEHOLDER, GUI_STATUS_VDA, { 90, 10, 64, 64 },
+											&(GUI_Placeholder) { .color = 0x00ff00 }, .return_state = GUI_STATUS_DRAG
+										}
 									}, {
 										{
-											ID_NONE, GUI_ITEM_PLACEHOLDER, GUI_STATUS_VA, { 170, 10, 64, 64 },
-											&(GUI_Placeholder) { .color = 0x0000ff }
+											ID_NONE, GUI_ITEM_PLACEHOLDER, GUI_STATUS_VDA, { 170, 10, 64, 64 },
+											&(GUI_Placeholder) { .color = 0x0000ff }, .return_state = GUI_STATUS_DRAG
 										}
 									}
 								}[0]
 							}, {
 								{
+									ID_NONE, GUI_ITEM_CONTENTPANE, GUI_STATUS_VSDA, { 10, 100, 272, 80 },
+									&(GUI_ContentPane) { .offset_rect = { 0, 0, 1, 0 } }, .return_state = GUI_STATUS_DRAG
+								},
+								.child_cnt = 3,
+								.subtree = &(GUI_ItemTree[]) {
+									{
+										{
+											ID_NONE, GUI_ITEM_PLACEHOLDER, GUI_STATUS_VDA, { 10, 10, 64, 64 },
+											&(GUI_Placeholder) { .color = 0xff8000 }, .return_state = GUI_STATUS_DRAG
+										}
+									}, {
+										{
+											ID_NONE, GUI_ITEM_PLACEHOLDER, GUI_STATUS_VDA, { 90, 10, 64, 64 },
+											&(GUI_Placeholder) { .color = 0x00ff80 }, .return_state = GUI_STATUS_DRAG
+										}
+									}, {
+										{
+											ID_NONE, GUI_ITEM_PLACEHOLDER, GUI_STATUS_VDA, { 170, 10, 64, 64 },
+											&(GUI_Placeholder) { .color = 0x8000ff }, .return_state = GUI_STATUS_DRAG
+										}
+									}
+								}[0]
+							}/*, {
 									ID_HSLIDERPANE, GUI_ITEM_HSLIDER, GUI_STATUS_VSDA, { 10, 100, 176, 32 },
 									&(GUI_Slider) { .min = 0, .max = 255, .value = 0 }, 999
 								},
@@ -147,7 +171,7 @@ GUI_ItemTree layout = {
 										}
 									}
 								}[0]
-							}
+							}*/
 						}[0]
 					}
 				}, {

@@ -1,4 +1,3 @@
-
 typedef uint64_t GUI_UID;
 typedef SDL_Rect GUI_Rect;
 
@@ -7,27 +6,14 @@ typedef enum {
 } GUI_Result;
 
 typedef enum {
-	GUI_EVENT_NONE, GUI_EVENT_MOVE, GUI_EVENT_DOWN, GUI_EVENT_UP
-} GUI_EventType;
-
-//typedef enum {
-//	GUI_COMMAND_NONE, GUI_COMMAND_CLOSE, GUI_COMMAND_ADD
-//} GUI_Command;
-
-typedef struct {
-	GUI_EventType type;
-	uint16_t x;
-	uint16_t y;
-} GUI_Event;
-
-typedef enum {
 	GUI_STATUS_NONE = 0, GUI_STATUS_DISABLED = 1,
 	GUI_STATUS_VISIBLE = 2, GUI_STATUS_ACTIVE = 4,
 	GUI_STATUS_SELECTABLE = 8, GUI_STATUS_HOVERABLE = 16,
 	GUI_STATUS_DRAGGABLE = 32,
 	GUI_STATUS_HOVER = 64, GUI_STATUS_DOWN = 128,
 	GUI_STATUS_DRAG = 256, GUI_STATUS_SELECTED = 512,
-	GUI_STATUS_VA = 6, GUI_STATUS_VSA = 14, GUI_STATUS_VSHA = 30,
+	GUI_STATUS_VA = 6, GUI_STATUS_VDA = 38,
+	GUI_STATUS_VSA = 14, GUI_STATUS_VSHA = 30,
 	GUI_STATUS_VSDA = 46, GUI_STATUS_VSDHA = 62
 } GUI_ItemStatus;
 
@@ -37,6 +23,17 @@ typedef enum {
 	GUI_ITEM_DISPLAYPANEL, GUI_ITEM_HSLIDER, GUI_ITEM_CONTENTPANE,
 	GUI_ITEM_PLACEHOLDER, GUI_ITEM_BOUNDINGBOX
 } GUI_ItemType;
+
+typedef enum {
+	GUI_EVENT_NONE = 0, GUI_EVENT_MOVE = 1, GUI_EVENT_DOWN = 2,
+	GUI_EVENT_DRAG = 4, GUI_EVENT_UP = 8
+} GUI_EventType;
+
+typedef struct {
+	GUI_EventType type;
+	uint16_t x;
+	uint16_t y;
+} GUI_Event;
 
 typedef struct {
 	uint32_t bg;
@@ -63,7 +60,7 @@ typedef struct GUI_Item {
 	GUI_ItemStatus status;
 	GUI_Rect rect;
 	void* element;
-	GUI_ID parent_id;
+	GUI_EventType return_state;
 } GUI_Item;
 
 typedef struct {

@@ -248,10 +248,10 @@ void GUI_render_group(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemRecord* ire
 
 void GUI_render_contentpane(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemRecord* irec)
 {
-	uint16_t x = irec->rect.x + 2;
-	uint16_t y = irec->rect.y + 2;
-	uint16_t w = irec->rect.w - 4;
-	uint16_t h = irec->rect.h - 4;
+	uint16_t x = ctx->rect.x;
+	uint16_t y = ctx->rect.y;
+	uint16_t w = ctx->rect.w;
+	uint16_t h = ctx->rect.h;
 	GUI_Color* color = ctx->color_body_passive;
 	SDL_FillRect(ctx->surf, &(SDL_Rect) { x, y, w, 2 }, color->dark);
 	SDL_FillRect(ctx->surf, &(SDL_Rect) { x, y + h, w, 2 }, color->dark);
@@ -263,7 +263,6 @@ void GUI_render_tabgroup(GUI_Dispatcher* dsp, GUI_Context* ctx, size_t index)
 {
 	GUI_ItemRecord* irec = &(dsp->items[index]);
 	GUI_TabGroup* tg = irec->item.element;
-
 	uint32_t cp_dark = ctx->color_body_passive->dark;
 	uint32_t ca_dark = ctx->color_body_active->dark;
 	uint32_t ca_light = ctx->color_body_active->light;

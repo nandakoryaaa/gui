@@ -159,40 +159,43 @@ void GUI_dispatcher_fix_rects(GUI_Context* ctx, GUI_Dispatcher* dsp)
 }
 
 GUI_IndexResult GUI_dispatcher_find_target_recursive(
-	GUI_Dispatcher* dsp, size_t index, uint16_t x, uint16_t y
+	GUI_Dispatcher* dsp, size_t index, GUI_Event evt
 ) {
 	GUI_ItemRecord* irec = &dsp->items[index];
 	GUI_IndexResult res = { GUI_NONE };
-	if ((irec->item.status & GUI_STATUS_VA) == 0) {
-		return res;
-	}
+	GUI_ItemStatus status = irec->item.status;
 	GUI_Rect rect = irec->rect;
 	if (
-		x >= rect.x && y >= rect.y && x < rect.x + rect.w && y < rect.y + rect.h
+		(status & GUI_STATUS_VA) == 0
+		|| evt.x < rect.x || evt.y < rect.y
+		|| evt.x >= rect.x + rect.w || evt.y >= rect.y + rect.h
 	) {
-		res.result = GUI_OK;
-		res.index = index;
-		for (uint16_t i = 0; i < irec->child_cnt; i++) {
-			index++;
-			GUI_IndexResult found_index = GUI_dispatcher_find_target_recursive(
-				dsp, index, x, y
-			);
-			if (found_index.result == GUI_OK) {
-				return found_index;
-			}
-			index += dsp->items[index].subtree_cnt;
-		}
+		return res;
 	}
+
+	res.result = GUI_OK;
+	res.index = index;
+
+	for (uint16_t i = 0; i < irec->child_cnt; i++) {
+		index++;
+		GUI_IndexResult child_index = GUI_dispatcher_find_target_recursive(
+			dsp, index, evt
+		);
+		if (child_index.result == GUI_OK) {
+			return child_index;
+		}
+		index += dsp->items[index].subtree_cnt;
+	}
+	
 	return res;
 }
 
-GUI_TargetResult GUI_dispatcher_find_target(
-	GUI_Dispatcher* dsp, uint16_t x, uint16_t y
-) {
+GUI_TargetResult GUI_dispatcher_find_target(GUI_Dispatcher* dsp, GUI_Event evt)
+{
 	GUI_TargetResult target = { GUI_NONE };
 	for (size_t i = 0; i < dsp->uid_cnt; i++) {
 		GUI_IndexResult ir = GUI_dispatcher_find_target_recursive(
-			dsp, dsp->uids[i].item_index, x, y
+			dsp, dsp->uids[i].item_index, evt
 		);
 		if (ir.result == GUI_OK) {
 			target.result = GUI_OK;
@@ -200,273 +203,109 @@ GUI_TargetResult GUI_dispatcher_find_target(
 			target.item_index = ir.index;
 		}
 	}
+
 	return target;
 }
 
-GUI_Result GUI_dispatcher_process_item_down(GUI_Dispatcher* dsp)
-{
-	GUI_ItemRecord* irec = &dsp->items[dsp->last_index];
-
-	if (irec->item.type == GUI_ITEM_HSLIDER) {
-		uint16_t x = dsp->origin_x;
-		uint16_t y = dsp->origin_y;
-		GUI_Slider* slider = irec->item.element;
-		GUI_Rect rect = GUI_slider_adjust_rect(slider, irec->rect);
-		// does it have buttons?
-		if (irec->child_cnt) {
-			rect.x += rect.h;
-			rect.w -= (rect.h << 1);
-		}
-		uint32_t range = slider->max - slider->min;
-		// thumb position according to value
-		uint16_t thumb_pos = rect.x + (slider->value - slider->min) * rect.w / range;
-		// is thumb hit?
-		if (x >= thumb_pos && x < thumb_pos + rect.h) {
-			// do nothing
-			return GUI_NONE;
-		}
-		// try positioning thumb at x as its center
-		thumb_pos = x - (rect.h >> 1);
-		if (thumb_pos < rect.x) {
-			slider->value = slider->min;
-		} else if (thumb_pos >= rect.x + rect.w) {
-			slider->value = slider->max;
-		} else {
-			uint32_t range = slider->max - slider->min;
-			slider->value = slider->min + (thumb_pos - rect.x) * range / rect.w;
-		}
-		return GUI_OK;
-	}
-
-	return GUI_NONE;
-}
-
-GUI_Result update_contentpane(GUI_Dispatcher* dsp, size_t index, uint16_t value)
-{
-	GUI_ItemRecord* irec = &dsp->items[index];
-	GUI_ContentPane* cp = irec->item.element;
-	GUI_Rect rect = cp->offset_rect;
-
-	GUI_IndexResult ir = GUI_dispatcher_find_next_child(dsp, GUI_ITEM_BOUNDINGBOX, index, index + 1);
-	if (ir.result == GUI_OK) {
-		uint16_t w = dsp->items[ir.index].rect.w;
-		int16_t x = dsp->items[ir.index].rect.x;
-		int16_t base_x = x - rect.x;
-		int16_t new_pos = base_x - (w - irec->rect.w) * value / 255;
-		int16_t dx = new_pos - x;
-		cp->offset_rect.x = new_pos - base_x;
-		size_t cnt = dsp->items[ir.index].subtree_cnt + 1;
-		while (cnt--) {
-			dsp->items[ir.index].rect.x += dx;
-			ir.index++;
-		}
-		return GUI_OK;
-	}
-	return GUI_NONE;
-
-}
-
-GUI_Result GUI_process_parent_elements(GUI_Dispatcher* dsp, GUI_ItemRecord* irec)
-{
-	GUI_Result result = GUI_NONE;
-	size_t index = dsp->last_index - irec->parent_offset;
-	GUI_ItemRecord* irec_parent = &dsp->items[index];
-
-	if (irec_parent->item.id == irec->item.parent_id) {
-		if (irec->item.type == GUI_ITEM_BUTTON) {
-			GUI_Button* btn = irec->item.element;
-			if (irec_parent->item.type == GUI_ITEM_HSLIDER) {
-				GUI_Slider* slider = irec_parent->item.element;
-				slider->value += btn->value;
-				if (slider->value > slider->max) {
-					slider->value = slider->max;
-				} else if (slider->value < slider->min) {
-					slider->value = slider->min;
-				}
-				result = GUI_OK;
-			}
-		} else if (irec->item.type == GUI_ITEM_HSLIDER) {
-			GUI_Slider* slider = irec->item.element;
-			if (irec_parent->item.type == GUI_ITEM_CONTENTPANE) {
-				result = update_contentpane(dsp, index, slider->value);
-			}
-		}
-	}
-	if (irec_parent->item.parent_id) {
-		size_t last_index = dsp->last_index;
-		dsp->last_index = index;
-		result = GUI_process_parent_elements(dsp, irec_parent);
-		dsp->last_index = last_index;
-	}
-
-	return result;
-}
-
-GUI_Result GUI_dispatcher_process_item_up(GUI_Dispatcher* dsp, uint16_t x, uint16_t y)
-{
-	GUI_ItemRecord* irec = &dsp->items[dsp->last_index];
-	GUI_Result result = GUI_NONE;
-
-	if (irec->item.type == GUI_ITEM_CHECKBOX) {
-		irec->item.status ^= GUI_STATUS_SELECTED;
-		result = GUI_OK;
-	} else if (irec->item.type == GUI_ITEM_TABGROUP) {
-		GUI_Rect rect = irec->rect;
-		GUI_TabGroup* tg = irec->item.element;
-		uint16_t child_cnt = irec->child_cnt;
-		if (dsp->origin_y - rect.y < tg->head_h) {
-			uint16_t tab_width = rect.w / child_cnt;
-			uint16_t active = (dsp->origin_x - rect.x) / tab_width;
-			size_t index = dsp->last_index + 1;
-			tg->current = active;
-			for (uint16_t i = 0; i < child_cnt; i++) {
-				dsp->items[index].item.status =	i == active ? GUI_STATUS_VSA : GUI_STATUS_NONE;
-				index += 1 + dsp->items[index].subtree_cnt;
-			}
-			result = GUI_OK;
-		}
-	}
-	if (irec->item.parent_id) {
-		result = GUI_process_parent_elements(dsp, irec);
-	}
-
-	return result;
-}
-
-GUI_Result GUI_dispatcher_process_item_drag(GUI_Dispatcher* dsp, uint16_t x, uint16_t y)
-{
-	GUI_ItemRecord* irec = &dsp->items[dsp->last_index];
+GUI_Result GUI_dispatcher_process_target_recursive(
+	GUI_Dispatcher* dsp, size_t index, GUI_Event evt
+) {
 	GUI_Result res = GUI_NONE;
-	int16_t dx = x - dsp->origin_x;
-	int16_t dy = y - dsp->origin_y;
+	GUI_ItemRecord* irec = &dsp->items[index];
 	switch (irec->item.type) {
-		case GUI_ITEM_HSLIDER: {
-			if (dx != 0) {
-				GUI_Slider* slider = irec->item.element;
-				GUI_Rect rect = GUI_slider_adjust_rect(slider, irec->rect);
-				if (irec->child_cnt) {
-					rect.x += rect.h;
-					rect.w -= (rect.h << 1);
-				}
-				uint32_t range = slider->max - slider->min;
-				// thumb position according to value
-				uint16_t thumb_pos = rect.x + (slider->value - slider->min) * rect.w / range;
-				// last cursor offset within thumb
-				uint16_t local_x = dsp->origin_x - thumb_pos;
-				// new thumb pos at x with same cursor offset
-				thumb_pos = x - local_x;
-				if (thumb_pos < rect.x) {
-					slider->value = slider->min;
-				} else if (thumb_pos >= rect.x + rect.w) {
-					slider->value = slider->max;
-				} else {
-					slider->value = slider->min + (thumb_pos - rect.x) * range / rect.w;
-				}
-				// correct thumb pos against new value because they don't always match
-				thumb_pos = rect.x + (slider->value - slider->min) * rect.w / range;
-				dsp->origin_x = thumb_pos + local_x;
-			}
-			res = GUI_OK;
-	if (irec->item.parent_id) {
-		res = GUI_process_parent_elements(dsp, irec);
-	}
-
+		case GUI_ITEM_BUTTON:
+			res = GUI_dispatcher_process_target_button(dsp, index, evt);
 			break;
-		}
-		default: {
-			size_t index = dsp->uids[dsp->last_uid_index].item_index;
-			uint16_t cnt = dsp->items[index].subtree_cnt + 1;
-			while (cnt--) {
-				dsp->items[index].rect.x += dx;
-				dsp->items[index].rect.y += dy;
-				index++;
-			}
-			dsp->origin_x = x;
-			dsp->origin_y = y;
-
-			res = GUI_OK;
-		}
+		case GUI_ITEM_CHECKBOX:
+			res = GUI_dispatcher_process_target_checkbox(dsp, index, evt);
+			break;
+		case GUI_ITEM_TABGROUP:
+			res = GUI_dispatcher_process_target_tabgroup(dsp, index, evt);
+			break;
+		case GUI_ITEM_CONTENTPANE:
+			res = GUI_dispatcher_process_target_contentpane(dsp, index, evt);
+			break;
+		case GUI_ITEM_HSLIDER:
+			res = GUI_dispatcher_process_target_hslider(dsp, index, evt);
+			break;
+		case GUI_ITEM_CAPTION:
+			res = GUI_dispatcher_process_target_caption(dsp, index, evt);
+			break;
 	}
 
+	GUI_ItemStatus return_state = dsp->items[index].item.return_state;
+	if (return_state && dsp->state == return_state) {
+		if (irec->parent_offset) {
+			GUI_Result res_parent = GUI_dispatcher_process_target_recursive(
+				dsp, index - irec->parent_offset, evt
+			);
+			if (res_parent == GUI_OK) {
+				res = GUI_OK;
+			}
+		}
+	}
 	return res;
 }
 
 GUI_Result GUI_dispatcher_process_event(GUI_Dispatcher* dsp, GUI_Event evt)
 {
-	size_t last_index = dsp->last_index;
-	GUI_ItemStatus last_state = dsp->state;
-	GUI_Result res = GUI_NONE;
-	if (last_state == GUI_STATUS_NONE) {
-		GUI_TargetResult target = GUI_dispatcher_find_target(dsp, evt.x, evt.y);
-		if (target.result == GUI_OK) {
-			GUI_ItemStatus st = dsp->items[target.item_index].item.status;
-			if (evt.type == GUI_EVENT_MOVE && (st & GUI_STATUS_HOVERABLE)) {
-				dsp->state = GUI_STATUS_HOVER;
-			} else if (evt.type == GUI_EVENT_DOWN && (st & GUI_STATUS_SELECTABLE)) {
-				dsp->state = GUI_STATUS_DOWN;
-				dsp->origin_x = evt.x;
-				dsp->origin_y = evt.y;
-			}
-			if (dsp->state != GUI_STATUS_NONE) {
-				dsp->items[target.item_index].item.status |= dsp->state;
-				dsp->last_uid_index = target.uid_index;
-				dsp->last_index = target.item_index;
-				if (dsp->state == GUI_STATUS_DOWN) {
-					GUI_dispatcher_process_item_down(dsp);
-				}
-			}
+	GUI_TargetResult target = GUI_dispatcher_find_target(dsp, evt);
+
+	uint16_t needs_state_init = 0;
+	if (target.result != GUI_OK) {
+		if (dsp->state == GUI_STATUS_NONE) {
+			return GUI_NONE;
 		}
-	} else if (last_state == GUI_STATUS_DOWN) {
-		GUI_ItemRecord* irec = &dsp->items[last_index];
-		if (evt.type == GUI_EVENT_MOVE) {
-			if (irec->item.status & GUI_STATUS_DRAGGABLE) {
-				irec->item.status |= GUI_STATUS_DRAG;
-				res = GUI_dispatcher_process_item_drag(dsp, evt.x, evt.y);
-			}
-			if (res != GUI_OK) {
-				GUI_TargetResult target = GUI_dispatcher_find_target(dsp, evt.x, evt.y);
-				if (target.result == GUI_NONE || target.item_index != last_index) {
-					irec->item.status &= ~(GUI_STATUS_HOVER | GUI_STATUS_DOWN | GUI_STATUS_DRAG);
-					dsp->state = GUI_STATUS_NONE;
-				}
-			}
-		} else if (evt.type == GUI_EVENT_UP) {
-			irec->item.status &= ~(GUI_STATUS_DOWN | GUI_STATUS_DRAG);
-			dsp->state = irec->item.status & GUI_STATUS_HOVER;
-			GUI_dispatcher_process_item_up(dsp, evt.x, evt.y);
-		}
-	} else if (last_state == GUI_STATUS_HOVER) {
-		GUI_ItemRecord* irec = &dsp->items[last_index];
-		if (evt.type == GUI_EVENT_MOVE) {
-			GUI_Rect rect = irec->rect;
-			if (
-				evt.x < rect.x || evt.x >= rect.x + rect.w
-				|| evt.y < rect.y || evt.y >= rect.y + rect.h
-			) {
-				irec->item.status &= ~GUI_STATUS_HOVER;
-				dsp->state = GUI_STATUS_NONE;
-				GUI_TargetResult target = GUI_dispatcher_find_target(dsp, evt.x, evt.y);
-				if (target.result == GUI_OK) {
-					irec = &dsp->items[target.item_index];
-					if (irec->item.status & GUI_STATUS_HOVERABLE) {
-						irec->item.status |= GUI_STATUS_HOVER;
-						dsp->last_uid_index = target.uid_index;
-						dsp->last_index = target.item_index;
-						dsp->state = GUI_STATUS_HOVER;
-					}
-				}
-			}
-		} else if (evt.type == GUI_EVENT_DOWN) {
-			irec->item.status |= GUI_STATUS_DOWN;
-			dsp->state = GUI_STATUS_DOWN;
-			dsp->origin_x = evt.x;
-			dsp->origin_y = evt.y;
-			GUI_dispatcher_process_item_down(dsp);
+		needs_state_init = (
+			dsp->state != GUI_STATUS_DRAG
+			|| (dsp->items[dsp->last_index].item.status & GUI_STATUS_DRAGGABLE) == 0
+		);
+	} else {
+		if (dsp->state == GUI_STATUS_NONE) {
+			needs_state_init = 1;
+		} else if (dsp->last_index != target.item_index) {
+			needs_state_init = (
+				dsp->state != GUI_STATUS_DRAG
+				|| (dsp->items[dsp->last_index].item.status & GUI_STATUS_DRAGGABLE) == 0
+			);
 		}
 	}
 
-	if (last_index != dsp->last_index || last_state != dsp->state) {
+	if (needs_state_init) {
+		dsp->items[dsp->last_index].item.status &= ~(GUI_STATUS_HOVER | GUI_STATUS_DOWN | GUI_STATUS_DRAG);
+		dsp->state = GUI_STATUS_NONE;
+		if (target.result == GUI_OK) {
+			dsp->items[target.item_index].item.status |= GUI_STATUS_HOVER;
+			dsp->last_uid_index = target.uid_index;
+			dsp->last_index = target.item_index;
+			dsp->state = GUI_STATUS_HOVER;
+		}
 		return GUI_OK;
 	}
-	return res;
+
+	if (evt.type == GUI_EVENT_MOVE) {
+		if (dsp->state == GUI_STATUS_DOWN) {
+			dsp->state = GUI_STATUS_DRAG;
+		} else if (dsp->state == GUI_STATUS_HOVER) {
+			return GUI_NONE;
+		}
+	} else if (evt.type == GUI_EVENT_DOWN) {
+		dsp->state = GUI_STATUS_DOWN;
+		dsp->origin_x = evt.x;
+		dsp->origin_y = evt.y;
+	} else if (evt.type == GUI_EVENT_UP) {
+		GUI_ItemStatus was_down = dsp->items[dsp->last_index].item.status & GUI_STATUS_DOWN;
+		dsp->state = GUI_STATUS_HOVER;
+		dsp->items[dsp->last_index].item.status &= ~(GUI_STATUS_DOWN | GUI_STATUS_DRAG);
+		dsp->items[dsp->last_index].item.status |= GUI_STATUS_HOVER;
+		if (!was_down) {
+			return GUI_NONE;
+		}
+	}
+
+	if (dsp->state != GUI_STATUS_NONE) {
+		dsp->items[dsp->last_index].item.status |= dsp->state;
+	}
+
+	return GUI_dispatcher_process_target_recursive(dsp, dsp->last_index, evt);
 }

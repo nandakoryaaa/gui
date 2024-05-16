@@ -84,15 +84,6 @@ void process_win1_up(GUI_Dispatcher* dsp, struct ModelWin1* model)
 {
 	size_t index = dsp->last_index;
 	GUI_ItemRecord* irec = &dsp->items[index];
-	
-	if (irec->item.type == GUI_ITEM_BUTTON) {
-		//GUI_Button* btn = irec->item.element;
-		if (irec->item.parent_id) {
-			index -= irec->parent_offset;
-			irec = &dsp->items[index];
-		}
-	}
-
 	GUI_Item item = irec->item;
 	if (item.type == GUI_ITEM_BUTTON) {
 		if (item.id == ID_BTN1 || item.id == ID_BTN2) {
