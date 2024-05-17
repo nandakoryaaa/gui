@@ -198,28 +198,30 @@ int main(int argc, char* argv[])
 	GUI_render(&dispatcher, &ctx);
 	SDL_UpdateWindowSurface(window);
 	SDL_Event event;
-
 	while (!model_win1.quit) {
-		if (SDL_PollEvent(&event)) {
-			GUI_Result dirty = GUI_NONE;
+		uint16_t needs_redraw = 0;
+		while (SDL_PollEvent(&event)) {
 			if (event.type == SDL_QUIT) {
+				model_win1.quit = 1;
 				break;
 			}
 			GUI_Event gui_event = GUI_convert_event(&event);
 			if (gui_event.type != GUI_EVENT_NONE) {
-				dirty = GUI_dispatcher_process_event(&dispatcher, gui_event);
-			}
-			if (dirty == GUI_OK) {
-				if (gui_event.type == GUI_EVENT_MOVE) {
-					route_item_move(&dispatcher);
-				} else if (gui_event.type == GUI_EVENT_DOWN) {
-					route_item_down(&dispatcher);
-				} else if (gui_event.type == GUI_EVENT_UP) {
-					route_item_up(&dispatcher);
+				if (GUI_dispatcher_process_event(&dispatcher, gui_event) == GUI_OK) {
+					if (gui_event.type == GUI_EVENT_MOVE) {
+						route_item_move(&dispatcher);
+					} else if (gui_event.type == GUI_EVENT_DOWN) {
+						route_item_down(&dispatcher);
+					} else if (gui_event.type == GUI_EVENT_UP) {
+						route_item_up(&dispatcher);
+					}
+					needs_redraw = 1;
 				}
-				GUI_render(&dispatcher, &ctx);
-				SDL_UpdateWindowSurface(window);
 			}
+		}
+		if (needs_redraw) {
+			GUI_render(&dispatcher, &ctx);
+			SDL_UpdateWindowSurface(window);
 		}
         SDL_Delay(10);
 	}

@@ -54,7 +54,7 @@ typedef struct {
 	uint8_t margin;
 } GUI_Shape;
 
-typedef struct GUI_Item {
+typedef struct {
 	uint32_t id;
 	GUI_ItemType type;
 	GUI_ItemStatus status;
