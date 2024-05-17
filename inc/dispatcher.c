@@ -252,28 +252,29 @@ GUI_Result GUI_dispatcher_process_event(GUI_Dispatcher* dsp, GUI_Event evt)
 	GUI_TargetResult target = GUI_dispatcher_find_target(dsp, evt);
 
 	uint16_t needs_state_init = 0;
-	if (target.result != GUI_OK) {
-		if (dsp->state == GUI_STATUS_NONE) {
+	GUI_Item* item = &dsp->items[dsp->last_index].item;
+
+	if (dsp->state == GUI_STATUS_NONE) {
+		if (target.result != GUI_OK) {
 			return GUI_NONE;
 		}
+		needs_state_init = 1;
+	} else if (
+		dsp->state != GUI_STATUS_DRAG
+		|| (item->status & GUI_STATUS_DRAGGABLE) == 0
+	) {
 		needs_state_init = (
-			dsp->state != GUI_STATUS_DRAG
-			|| (dsp->items[dsp->last_index].item.status & GUI_STATUS_DRAGGABLE) == 0
+			target.result != GUI_OK
+			|| target.item_index != dsp->last_index
 		);
-	} else {
-		if (dsp->state == GUI_STATUS_NONE) {
-			needs_state_init = 1;
-		} else if (dsp->last_index != target.item_index) {
-			needs_state_init = (
-				dsp->state != GUI_STATUS_DRAG
-				|| (dsp->items[dsp->last_index].item.status & GUI_STATUS_DRAGGABLE) == 0
-			);
-		}
 	}
 
 	if (needs_state_init) {
-		dsp->items[dsp->last_index].item.status &= ~(GUI_STATUS_HOVER | GUI_STATUS_DOWN | GUI_STATUS_DRAG);
-		dsp->state = GUI_STATUS_NONE;
+		if (dsp->state != GUI_STATUS_NONE) {
+			item->status &= ~(GUI_STATUS_HOVER | GUI_STATUS_DOWN | GUI_STATUS_DRAG);
+			dsp->state = GUI_STATUS_NONE;
+		}
+
 		if (target.result == GUI_OK) {
 			dsp->items[target.item_index].item.status |= GUI_STATUS_HOVER;
 			dsp->last_uid_index = target.uid_index;
@@ -294,18 +295,16 @@ GUI_Result GUI_dispatcher_process_event(GUI_Dispatcher* dsp, GUI_Event evt)
 		dsp->origin_x = evt.x;
 		dsp->origin_y = evt.y;
 	} else if (evt.type == GUI_EVENT_UP) {
-		GUI_ItemStatus was_down = dsp->items[dsp->last_index].item.status & GUI_STATUS_DOWN;
+		GUI_ItemStatus was_down = item->status & GUI_STATUS_DOWN;
 		dsp->state = GUI_STATUS_HOVER;
-		dsp->items[dsp->last_index].item.status &= ~(GUI_STATUS_DOWN | GUI_STATUS_DRAG);
-		dsp->items[dsp->last_index].item.status |= GUI_STATUS_HOVER;
+		item->status &= ~(GUI_STATUS_DOWN | GUI_STATUS_DRAG);
+		item->status |= GUI_STATUS_HOVER;
 		if (!was_down) {
 			return GUI_NONE;
 		}
 	}
 
-	if (dsp->state != GUI_STATUS_NONE) {
-		dsp->items[dsp->last_index].item.status |= dsp->state;
-	}
+	item->status |= dsp->state;
 
 	return GUI_dispatcher_process_target_recursive(dsp, dsp->last_index, evt);
 }

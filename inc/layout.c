@@ -80,12 +80,12 @@ GUI_ItemTree layout = {
 							.subtree = &(GUI_ItemTree[]) {
 								{
 									{
-										ID_NONE, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 2, 2, 28, 28 },
+										999, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 2, 2, 28, 28 },
 										&(GUI_Button) { .value = -10, .text = "<" }, ID_HSLIDER_B
 									}
 								}, {
 									{
-										ID_NONE, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 146, 2, 28, 28 },
+										888, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 146, 2, 28, 28 },
 										&(GUI_Button) { .value = 10, .text = ">" }, ID_HSLIDER_B
 									}
 								}
