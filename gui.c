@@ -60,86 +60,61 @@ void set_caption_color_win1(GUI_Dispatcher* dsp)
 	((GUI_Caption*)(dsp->items[ir.index].item.element))->color_active->bg = color;
 }
 
-void process_win1_down(GUI_Dispatcher* dsp, struct ModelWin1* model)
+void update_display_panel_win1(GUI_Dispatcher* dsp, GUI_Command cmd)
 {
-	GUI_Item item = dsp->items[dsp->last_index].item;
-	if (
-		item.id == ID_HSLIDER_R || item.id == ID_HSLIDER_G || item.id == ID_HSLIDER_B
-	) {
-		set_caption_color_win1(dsp);
-	}
-}
-
-void process_win1_move(GUI_Dispatcher* dsp, struct ModelWin1* model)
-{
-	GUI_Item item = dsp->items[dsp->last_index].item;
-	if (item.type == GUI_ITEM_HSLIDER && (item.status & GUI_STATUS_DRAG)) {
-		if (item.id == ID_HSLIDER_R || item.id == ID_HSLIDER_G || item.id == ID_HSLIDER_B) {
-			set_caption_color_win1(dsp);
+	GUI_IndexResult ir = GUI_dispatcher_find_item(dsp, dsp->last_uid_index, ID_PANEL1);
+	if (ir.result == GUI_OK) {
+		GUI_DisplayPanel* dp = dsp->items[ir.index].item.element;
+		if (cmd.type == GUI_CMD_DECVAL) {
+			dp->ivalue--;
+		} else {
+			dp->ivalue++;
 		}
 	}
 }
 
-void process_win1_up(GUI_Dispatcher* dsp, struct ModelWin1* model)
+void process_win1(GUI_Dispatcher* dsp, GUI_ComboEvent cevt, struct ModelWin1* model)
 {
 	size_t index = dsp->last_index;
 	GUI_ItemRecord* irec = &dsp->items[index];
 	GUI_Item item = irec->item;
-	if (item.type == GUI_ITEM_BUTTON) {
-		if (item.id == ID_BTN1 || item.id == ID_BTN2) {
-			GUI_IndexResult ir = GUI_dispatcher_find_item(dsp, dsp->last_uid_index, ID_PANEL1);
-			if (ir.result == GUI_OK) {
-				GUI_DisplayPanel* dp = dsp->items[ir.index].item.element;
-				if (item.id == ID_BTN1) {
-					dp->ivalue--;
-				} else {
-					dp->ivalue++;
+
+	if (cevt.type == GUI_EVENT_CMD) {
+		switch (cevt.cmd.type) {
+			case GUI_CMD_SETCOLOR:
+				set_caption_color_win1(dsp);
+				break;
+			case GUI_CMD_CLOSE:
+				model->quit = 1;
+				break;
+			case GUI_CMD_INCVAL:
+			case GUI_CMD_DECVAL:
+				update_display_panel_win1(dsp, cevt.cmd);
+				break;
+		}				
+		return;
+	}
+
+	if (cevt.type == GUI_EVENT_UP) {
+		if (item.type == GUI_ITEM_CHECKBOX) {
+			GUI_Checkbox* cb = item.element;
+			int flag = item.status & GUI_STATUS_SELECTED ? 1 : 0;
+			for (int i = 0; i < 3; i++) {
+				if (item.id == model->ids[i]) {
+					*model->flags[i] = flag;
+					break;
 				}
 			}
-		} else if (item.id == ID_BTN_CLOSE) {
-			model->quit = 1;
 		}
-	} else if (item.type == GUI_ITEM_CHECKBOX) {
-		GUI_Checkbox* cb = item.element;
-		int flag = item.status & GUI_STATUS_SELECTED ? 1 : 0;
-		for (int i = 0; i < 3; i++) {
-			if (item.id == model->ids[i]) {
-				*model->flags[i] = flag;
-				break;
-			}
-		}
-	} else if (
-		item.type == GUI_ITEM_HSLIDER
-		&& (item.id == ID_HSLIDER_R || item.id == ID_HSLIDER_G || item.id == ID_HSLIDER_B)
-	) {
-		set_caption_color_win1(dsp);
 	}
 }
 
-void route_item_move(GUI_Dispatcher* dsp)
+void route_item(GUI_Dispatcher* dsp, GUI_ComboEvent cevt)
 {
 	GUI_ItemRecord* irec = &dsp->items[dsp->last_uid_index];
 
 	if (irec->item.id == ID_WIN1) {
-		process_win1_move(dsp, &model_win1);
-	}
-}
-
-void route_item_down(GUI_Dispatcher* dsp)
-{
-	GUI_ItemRecord* irec = &dsp->items[dsp->last_uid_index];
-
-	if (irec->item.id == ID_WIN1) {
-		process_win1_down(dsp, &model_win1);
-	}
-}
-
-void route_item_up(GUI_Dispatcher* dsp)
-{
-	GUI_ItemRecord* irec = &dsp->items[dsp->last_uid_index];
-
-	if (irec->item.id == ID_WIN1) {
-		process_win1_up(dsp, &model_win1);
+		process_win1(dsp, cevt, &model_win1);
 	}
 }
 
@@ -198,6 +173,7 @@ int main(int argc, char* argv[])
 	GUI_render(&dispatcher, &ctx);
 	SDL_UpdateWindowSurface(window);
 	SDL_Event event;
+
 	while (!model_win1.quit) {
 		uint16_t needs_redraw = 0;
 		while (SDL_PollEvent(&event)) {
@@ -207,14 +183,11 @@ int main(int argc, char* argv[])
 			}
 			GUI_Event gui_event = GUI_convert_event(&event);
 			if (gui_event.type != GUI_EVENT_NONE) {
-				if (GUI_dispatcher_process_event(&dispatcher, gui_event) == GUI_OK) {
-					if (gui_event.type == GUI_EVENT_MOVE) {
-						route_item_move(&dispatcher);
-					} else if (gui_event.type == GUI_EVENT_DOWN) {
-						route_item_down(&dispatcher);
-					} else if (gui_event.type == GUI_EVENT_UP) {
-						route_item_up(&dispatcher);
-					}
+				GUI_ComboEvent cevt = GUI_dispatcher_process_event(&dispatcher, gui_event);
+				if (cevt.type != GUI_EVENT_NONE) {
+					route_item(&dispatcher, cevt);
+				}
+				if (cevt.result == GUI_OK) {
 					needs_redraw = 1;
 				}
 			}

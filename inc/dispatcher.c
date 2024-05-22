@@ -207,56 +207,55 @@ GUI_TargetResult GUI_dispatcher_find_target(GUI_Dispatcher* dsp, GUI_Event evt)
 	return target;
 }
 
-GUI_Result GUI_dispatcher_process_target_recursive(
-	GUI_Dispatcher* dsp, size_t index, GUI_Event evt
+GUI_ComboEvent GUI_dispatcher_process_target_recursive(
+	GUI_Dispatcher* dsp, size_t index, GUI_ComboEvent cevt
 ) {
-	GUI_Result res = GUI_NONE;
 	GUI_ItemRecord* irec = &dsp->items[index];
 	switch (irec->item.type) {
 		case GUI_ITEM_BUTTON:
-			res = GUI_dispatcher_process_target_button(dsp, index, evt);
+			cevt = GUI_dispatcher_process_target_button(dsp, index, cevt);
 			break;
 		case GUI_ITEM_CHECKBOX:
-			res = GUI_dispatcher_process_target_checkbox(dsp, index, evt);
+			cevt = GUI_dispatcher_process_target_checkbox(dsp, index, cevt);
 			break;
 		case GUI_ITEM_TABGROUP:
-			res = GUI_dispatcher_process_target_tabgroup(dsp, index, evt);
+			cevt = GUI_dispatcher_process_target_tabgroup(dsp, index, cevt);
 			break;
 		case GUI_ITEM_CONTENTPANE:
-			res = GUI_dispatcher_process_target_contentpane(dsp, index, evt);
+			cevt = GUI_dispatcher_process_target_contentpane(dsp, index, cevt);
 			break;
 		case GUI_ITEM_HSLIDER:
-			res = GUI_dispatcher_process_target_hslider(dsp, index, evt);
+			cevt = GUI_dispatcher_process_target_hslider(dsp, index, cevt);
 			break;
-		case GUI_ITEM_CAPTION:
-			res = GUI_dispatcher_process_target_caption(dsp, index, evt);
+		case GUI_ITEM_WINDOW:
+			cevt = GUI_dispatcher_process_target_window(dsp, index, cevt);
 			break;
 	}
 
-	GUI_ItemStatus return_state = dsp->items[index].item.return_state;
-	if (return_state && dsp->state == return_state) {
-		if (irec->parent_offset) {
-			GUI_Result res_parent = GUI_dispatcher_process_target_recursive(
-				dsp, index - irec->parent_offset, evt
-			);
-			if (res_parent == GUI_OK) {
-				res = GUI_OK;
+	if (cevt.type != GUI_EVENT_NONE) {
+		if (dsp->items[index].item.return_state == cevt.type) {
+			if (irec->parent_offset) {
+				cevt = GUI_dispatcher_process_target_recursive(
+					dsp, index - irec->parent_offset, cevt
+				);
 			}
 		}
 	}
-	return res;
+
+	return cevt;
 }
 
-GUI_Result GUI_dispatcher_process_event(GUI_Dispatcher* dsp, GUI_Event evt)
+GUI_ComboEvent GUI_dispatcher_process_event(GUI_Dispatcher* dsp, GUI_Event evt)
 {
 	GUI_TargetResult target = GUI_dispatcher_find_target(dsp, evt);
 
 	uint16_t needs_state_init = 0;
 	GUI_Item* item = &dsp->items[dsp->last_index].item;
+	GUI_ComboEvent cevt = { .type = evt.type, .result = GUI_NONE, .evt = evt };
 
 	if (dsp->state == GUI_STATUS_NONE) {
 		if (target.result != GUI_OK) {
-			return GUI_NONE;
+			return cevt;
 		}
 		needs_state_init = 1;
 	} else if (
@@ -281,14 +280,17 @@ GUI_Result GUI_dispatcher_process_event(GUI_Dispatcher* dsp, GUI_Event evt)
 			dsp->last_index = target.item_index;
 			dsp->state = GUI_STATUS_HOVER;
 		}
-		return GUI_OK;
+		cevt.result = GUI_OK;
+		return cevt;
 	}
 
 	if (evt.type == GUI_EVENT_MOVE) {
-		if (dsp->state == GUI_STATUS_DOWN) {
+		if (dsp->state & (GUI_STATUS_DOWN | GUI_STATUS_DRAG)) {
 			dsp->state = GUI_STATUS_DRAG;
+			cevt.type = GUI_EVENT_DRAG;
+			//cevt.evt.type = GUI_EVENT_DRAG;
 		} else if (dsp->state == GUI_STATUS_HOVER) {
-			return GUI_NONE;
+			return cevt;
 		}
 	} else if (evt.type == GUI_EVENT_DOWN) {
 		dsp->state = GUI_STATUS_DOWN;
@@ -300,11 +302,10 @@ GUI_Result GUI_dispatcher_process_event(GUI_Dispatcher* dsp, GUI_Event evt)
 		item->status &= ~(GUI_STATUS_DOWN | GUI_STATUS_DRAG);
 		item->status |= GUI_STATUS_HOVER;
 		if (!was_down) {
-			return GUI_NONE;
+			return cevt;
 		}
 	}
 
 	item->status |= dsp->state;
-
-	return GUI_dispatcher_process_target_recursive(dsp, dsp->last_index, evt);
+	return GUI_dispatcher_process_target_recursive(dsp, dsp->last_index, cevt);
 }
