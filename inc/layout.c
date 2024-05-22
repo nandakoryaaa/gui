@@ -80,13 +80,15 @@ GUI_ItemTree layout = {
 							.subtree = &(GUI_ItemTree[]) {
 								{
 									{
-										999, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 2, 2, 28, 28 },
-										&(GUI_Button) { .value = -10, .text = "<" }, ID_HSLIDER_B
+										ID_NONE, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 2, 2, 28, 28 },
+										&(GUI_Button) { .command_type = GUI_CMD_INCVAL, .value = -10, .text = "<" },
+										.return_state = GUI_EVENT_CMD
 									}
 								}, {
 									{
-										888, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 146, 2, 28, 28 },
-										&(GUI_Button) { .value = 10, .text = ">" }, ID_HSLIDER_B
+										ID_NONE, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 146, 2, 28, 28 },
+										&(GUI_Button) { .command_type = GUI_CMD_INCVAL, .value = 10, .text = ">" },
+										.return_state = GUI_EVENT_CMD
 									}
 								}
 							}[0]
@@ -108,70 +110,52 @@ GUI_ItemTree layout = {
 							{
 								{
 									ID_NONE, GUI_ITEM_CONTENTPANE, GUI_STATUS_VSDA, { 10, 10, 272, 80 },
-									&(GUI_ContentPane) { .offset_rect = { 0, 0, 1, 0 } }, .return_state = GUI_STATUS_DRAG
+									&(GUI_ContentPane) { .offset_rect = { 0, 0, 1, 0 } }, .return_state = GUI_EVENT_DRAG
 								},
 								.child_cnt = 3,
 								.subtree = &(GUI_ItemTree[]) {
 									{
 										{
 											ID_NONE, GUI_ITEM_PLACEHOLDER, GUI_STATUS_VDA, { 10, 10, 64, 64 },
-											&(GUI_Placeholder) { .color = 0xff0000 }, .return_state = GUI_STATUS_DRAG
+											&(GUI_Placeholder) { .color = 0xff0000 }, .return_state = GUI_EVENT_DRAG
 										}
 									}, {
 										{
 											ID_NONE, GUI_ITEM_PLACEHOLDER, GUI_STATUS_VDA, { 90, 10, 64, 64 },
-											&(GUI_Placeholder) { .color = 0x00ff00 }, .return_state = GUI_STATUS_DRAG
+											&(GUI_Placeholder) { .color = 0x00ff00 }, .return_state = GUI_EVENT_DRAG
 										}
 									}, {
 										{
 											ID_NONE, GUI_ITEM_PLACEHOLDER, GUI_STATUS_VDA, { 170, 10, 64, 64 },
-											&(GUI_Placeholder) { .color = 0x0000ff }, .return_state = GUI_STATUS_DRAG
+											&(GUI_Placeholder) { .color = 0x0000ff }, .return_state = GUI_EVENT_DRAG
 										}
 									}
 								}[0]
 							}, {
 								{
 									ID_NONE, GUI_ITEM_CONTENTPANE, GUI_STATUS_VSDA, { 10, 100, 272, 80 },
-									&(GUI_ContentPane) { .offset_rect = { 0, 0, 1, 0 } }, .return_state = GUI_STATUS_DRAG
+									&(GUI_ContentPane) { .offset_rect = { 0, 0, 1, 0 } }, .return_state = GUI_EVENT_DRAG
 								},
 								.child_cnt = 3,
 								.subtree = &(GUI_ItemTree[]) {
 									{
 										{
 											ID_NONE, GUI_ITEM_PLACEHOLDER, GUI_STATUS_VDA, { 10, 10, 64, 64 },
-											&(GUI_Placeholder) { .color = 0xff8000 }, .return_state = GUI_STATUS_DRAG
+											&(GUI_Placeholder) { .color = 0xff8000 }, .return_state = GUI_EVENT_DRAG
 										}
 									}, {
 										{
 											ID_NONE, GUI_ITEM_PLACEHOLDER, GUI_STATUS_VDA, { 90, 10, 64, 64 },
-											&(GUI_Placeholder) { .color = 0x00ff80 }, .return_state = GUI_STATUS_DRAG
+											&(GUI_Placeholder) { .color = 0x00ff80 }, .return_state = GUI_EVENT_DRAG
 										}
 									}, {
 										{
 											ID_NONE, GUI_ITEM_PLACEHOLDER, GUI_STATUS_VDA, { 170, 10, 64, 64 },
-											&(GUI_Placeholder) { .color = 0x8000ff }, .return_state = GUI_STATUS_DRAG
+											&(GUI_Placeholder) { .color = 0x8000ff }, .return_state = GUI_EVENT_DRAG
 										}
 									}
 								}[0]
-							}/*, {
-									ID_HSLIDERPANE, GUI_ITEM_HSLIDER, GUI_STATUS_VSDA, { 10, 100, 176, 32 },
-									&(GUI_Slider) { .min = 0, .max = 255, .value = 0 }, 999
-								},
-								.child_cnt = 2,
-								.subtree = &(GUI_ItemTree[]) {
-									{
-										{
-											ID_NONE, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 2, 2, 28, 28 },
-											&(GUI_Button) { .value = -5, .text = "<" }, ID_HSLIDERPANE
-										}
-									}, {
-										{
-											ID_NONE, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 146, 2, 28, 28 },
-											&(GUI_Button) { .value = 5, .text = ">" }, ID_HSLIDERPANE
-										}
-									}
-								}[0]
-							}*/
+							}
 						}[0]
 					}
 				}, {

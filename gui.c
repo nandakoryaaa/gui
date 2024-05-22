@@ -198,6 +198,7 @@ int main(int argc, char* argv[])
 	GUI_render(&dispatcher, &ctx);
 	SDL_UpdateWindowSurface(window);
 	SDL_Event event;
+
 	while (!model_win1.quit) {
 		uint16_t needs_redraw = 0;
 		while (SDL_PollEvent(&event)) {
@@ -207,7 +208,8 @@ int main(int argc, char* argv[])
 			}
 			GUI_Event gui_event = GUI_convert_event(&event);
 			if (gui_event.type != GUI_EVENT_NONE) {
-				if (GUI_dispatcher_process_event(&dispatcher, gui_event) == GUI_OK) {
+				GUI_ComboEvent cevt = GUI_dispatcher_process_event(&dispatcher, gui_event);
+				if (cevt.type != GUI_EVENT_NONE) {
 					if (gui_event.type == GUI_EVENT_MOVE) {
 						route_item_move(&dispatcher);
 					} else if (gui_event.type == GUI_EVENT_DOWN) {
@@ -215,6 +217,8 @@ int main(int argc, char* argv[])
 					} else if (gui_event.type == GUI_EVENT_UP) {
 						route_item_up(&dispatcher);
 					}
+				}
+				if (cevt.result == GUI_OK) {
 					needs_redraw = 1;
 				}
 			}

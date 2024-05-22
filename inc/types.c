@@ -25,15 +25,36 @@ typedef enum {
 } GUI_ItemType;
 
 typedef enum {
-	GUI_EVENT_NONE = 0, GUI_EVENT_MOVE = 1, GUI_EVENT_DOWN = 2,
-	GUI_EVENT_DRAG = 4, GUI_EVENT_UP = 8
+	GUI_EVENT_NONE = 0,	GUI_EVENT_MOVE = 1, GUI_EVENT_DOWN = 2, GUI_EVENT_UP = 4,
+	GUI_EVENT_CMD = 8,
+	GUI_EVENT_DRAG = 3
 } GUI_EventType;
+
+typedef enum {
+	GUI_CMD_NONE, GUI_CMD_OK, GUI_CMD_CLOSE, GUI_CMD_CANCEL,
+	GUI_CMD_INCVAL, GUI_CMD_DECVAL,	GUI_CMD_SETVAL,
+	GUI_CMD_SETCOLOR
+} GUI_CommandType;
 
 typedef struct {
 	GUI_EventType type;
 	uint16_t x;
 	uint16_t y;
 } GUI_Event;
+
+typedef struct {
+	GUI_CommandType type;
+	int32_t value;
+} GUI_Command;
+
+typedef struct {
+	GUI_EventType type;
+	GUI_Result result;
+	union {
+		GUI_Event evt;
+		GUI_Command cmd;
+	};
+} GUI_ComboEvent;
 
 typedef struct {
 	uint32_t bg;
@@ -54,7 +75,7 @@ typedef struct {
 	uint8_t margin;
 } GUI_Shape;
 
-typedef struct {
+typedef struct GUI_Item {
 	uint32_t id;
 	GUI_ItemType type;
 	GUI_ItemStatus status;
