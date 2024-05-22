@@ -17,13 +17,13 @@ GUI_ItemTree layout = {
 				&(GUI_Caption) {
 					&(GUI_Color) { .bg = 0x808080, .fg = 0xffffff },
 					NULL, NULL, NULL, "Hello GUI"
-				}
+				}, .return_state = GUI_EVENT_DRAG
 			},
 			.child_cnt = 1,
 			.subtree = &(GUI_ItemTree) {
 				{
-					ID_BTN_CLOSE, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { -34, 8, 24, 24 },
-					&(GUI_Button) { .text = "x" }
+					ID_NONE, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { -34, 8, 24, 24 },
+					&(GUI_Button) { .command_type = GUI_CMD_CLOSE, .text = "x" }
 				}
 			}
 		}, {
@@ -41,7 +41,7 @@ GUI_ItemTree layout = {
 					.child_cnt = 6,
 					.subtree = &(GUI_ItemTree[]) {
 						{
-							{
+							.item = {
 								ID_PANEL1, GUI_ITEM_DISPLAYPANEL, GUI_STATUS_VSA, { 120, 60, 120, 32 },
 								&(GUI_DisplayPanel) {
 									.color_active = &(GUI_Color) { .bg = 0, .fg = 0xffffff, .light = 0xcccccc, .dark = 0x333333 },
@@ -53,28 +53,28 @@ GUI_ItemTree layout = {
 							}
 						}, {
 							{
-								ID_BTN1, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 80, 60, 32, 32 },
-								&(GUI_Button) { .text = "-" }
-							}
+								ID_NONE, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 80, 60, 32, 32 },
+								&(GUI_Button) { .command_type = GUI_CMD_DECVAL, .text = "-" },
+							}		
 						}, {
 							{
-								ID_BTN2, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 248, 60, 32, 32 },
-								&(GUI_Button) { .text = "+" }
+								ID_NONE, GUI_ITEM_BUTTON, GUI_STATUS_VSHA, { 248, 60, 32, 32 },
+								&(GUI_Button) { .command_type = GUI_CMD_INCVAL, .text = "+" },
 							}
 						}, {
 							{
 								ID_HSLIDER_R, GUI_ITEM_HSLIDER, GUI_STATUS_VSDA, { 108, 120, 120, 32 },
-								&(GUI_Slider) { .min = 0, .max = 255, .value = 0x80 }
+								&(GUI_Slider) { .command_type = GUI_CMD_SETCOLOR, .min = 0, .max = 255, .value = 0x80 }
 							}
 						}, {
 							{
 								ID_HSLIDER_G, GUI_ITEM_HSLIDER, GUI_STATUS_VSDA, { 108, 160, 120, 32 },
-								&(GUI_Slider) { .min = 0, .max = 255, .value = 0x80 }
+								&(GUI_Slider) { .command_type = GUI_CMD_SETCOLOR, .min = 0, .max = 255, .value = 0x80 }
 							}
 						}, {
 							.item = {
 								ID_HSLIDER_B, GUI_ITEM_HSLIDER, GUI_STATUS_VSDA, { 80, 200, 176, 32 },
-								&(GUI_Slider) { .min = 0, .max = 255, .value = 0x80 }
+								&(GUI_Slider) { .command_type = GUI_CMD_SETCOLOR, .min = 0, .max = 255, .value = 0x80 }
 							},
 							.child_cnt = 2,
 							.subtree = &(GUI_ItemTree[]) {

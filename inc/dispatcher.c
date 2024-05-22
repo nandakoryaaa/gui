@@ -227,8 +227,8 @@ GUI_ComboEvent GUI_dispatcher_process_target_recursive(
 		case GUI_ITEM_HSLIDER:
 			cevt = GUI_dispatcher_process_target_hslider(dsp, index, cevt);
 			break;
-		case GUI_ITEM_CAPTION:
-			cevt = GUI_dispatcher_process_target_caption(dsp, index, cevt);
+		case GUI_ITEM_WINDOW:
+			cevt = GUI_dispatcher_process_target_window(dsp, index, cevt);
 			break;
 	}
 
@@ -237,8 +237,8 @@ GUI_ComboEvent GUI_dispatcher_process_target_recursive(
 			if (irec->parent_offset) {
 				cevt = GUI_dispatcher_process_target_recursive(
 					dsp, index - irec->parent_offset, cevt
-				)
-			};
+				);
+			}
 		}
 	}
 
