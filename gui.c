@@ -15,14 +15,10 @@
 
 typedef enum {
 	ID_NONE, ID_BTN_CLOSE, ID_WIN1, ID_CAPTION, ID_TABGROUP,
-	ID_TAB1, ID_TAB2, ID_TAB3,
-	ID_T2G1, ID_T3G1,
-	ID_T2G1_CB1, ID_T2G1_CB2, ID_T2G1_CB3,
-	ID_T3G1_CB1, ID_T3G1_CB2, ID_T3G1_CB3,
+	ID_CB1, ID_CB2, ID_CB3,
 	ID_PANEL1, ID_BTN1, ID_BTN2,
 	ID_TEST, ID_HSLIDER_R, ID_HSLIDER_G, ID_HSLIDER_B,
 	ID_HSLIDERPANE,
-	ID_SBTN1, ID_SBTN2
 } GUI_ID;
 
 #include "inc/types.c"
@@ -33,18 +29,18 @@ typedef enum {
 static struct ModelWin1 {
 	GUI_ID ids[3];
 	int* flags[3];
-	int t2g1_cb1, t2g1_cb2, t2g1_cb3;
-	int t2g1_cb1_on, t2g1_cb2_on, t2g1_cb3_on;
+	int cb1, cb2, cb3;
+	int cb1_on, cb2_on, cb3_on;
 	int counter;
 	int quit;
 } model_win1 = {
 	.ids = {
-		ID_T2G1_CB1, ID_T2G1_CB2, ID_T2G1_CB3
+		ID_CB1, ID_CB2, ID_CB3
 	},
 	.flags = {
-		&model_win1.t2g1_cb1_on, &model_win1.t2g1_cb2_on, &model_win1.t2g1_cb3_on
+		&model_win1.cb1_on, &model_win1.cb2_on, &model_win1.cb3_on
 	},
-	.t2g1_cb1 = 1, .t2g1_cb2 = 2, .t2g1_cb3 = 3,
+	.cb1 = 1, .cb2 = 2, .cb3 = 3,
 	.quit = 0
 };
 
@@ -158,17 +154,16 @@ int main(int argc, char* argv[])
 		.font_button = GUI_font08x16,
 		.current_color = ctx.color_body_active
 	};
-	GUI_Dispatcher dispatcher = {
-		.uid_cnt = 0, .item_cnt = 0, .uid = GUI_UID_FIRST,
-		.state = GUI_STATUS_NONE
-	};
+
+	GUI_Dispatcher dispatcher = {};
+	GUI_dispatcher_init(&dispatcher, 1024 * 512);
 
 	#include "inc/layout.c"
 
 	GUI_dispatcher_push_tree(&dispatcher, &layout);
 	GUI_dispatcher_fix_rects(&ctx, &dispatcher);
 
-	GUI_dispatcher_list_items(&dispatcher);
+	//GUI_dispatcher_list_items(&dispatcher);
 
 	GUI_render(&dispatcher, &ctx);
 	SDL_UpdateWindowSurface(window);
@@ -198,6 +193,8 @@ int main(int argc, char* argv[])
 		}
         SDL_Delay(10);
 	}
+
+	GUI_dispatcher_free(&dispatcher);
 
 	SDL_FreeSurface(ctx.surf);
 	SDL_DestroyWindow(window);

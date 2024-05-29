@@ -22,6 +22,75 @@ void GUI_dispatcher_clear(GUI_Dispatcher* dsp)
 	dsp->item_cnt = 0;
 	dsp->uid_cnt = 0;
 	dsp->uid = GUI_UID_FIRST;
+	dsp->state = GUI_STATUS_NONE;
+	dsp->storage.last_mem = dsp->storage.mem;
+	memset(dsp->storage.hash, 0, sizeof(dsp->storage.hash));
+}
+void GUI_dispatcher_free(GUI_Dispatcher* dsp)
+{
+	if (dsp->storage.mem != NULL) {
+		free(dsp->storage.mem);
+	}
+}
+
+void GUI_dispatcher_init(GUI_Dispatcher* dsp, size_t mem_size)
+{
+	dsp->storage.mem = malloc(mem_size);
+	dsp->storage.size = mem_size;
+	GUI_dispatcher_clear(dsp);
+}
+
+void* GUI_dispatcher_allocate_element(GUI_Dispatcher* dsp, uint16_t size)
+{
+	GUI_StorageHash* sth = &dsp->storage.hash[size];
+	GUI_StorageElement* new;
+	if (!sth->free_cnt) {
+		new = dsp->storage.last_mem;
+		dsp->storage.last_mem += sizeof(GUI_StorageElement) + size;
+	} else {
+		sth->free_cnt--;
+		new = sth->last_free;
+		sth->last_free = new->prev;
+		sth->last_free->next = NULL;
+	}
+	*new = (GUI_StorageElement) {
+		.size = size, .status = GUI_OK, .prev = sth->last_used 
+	};
+	if (sth->last_used) {
+		sth->last_used->next = new;
+	}
+	sth->last_used = new;
+	sth->cnt++;
+
+	return (void*) new + sizeof(GUI_StorageElement);
+}
+
+void GUI_dispatcher_free_element(GUI_Dispatcher* dsp, void* ptr)
+{
+	if (ptr < dsp->storage.mem || ptr >= dsp->storage.last_mem) {
+		printf(
+			"element was not allocated: mem = %lu, last_mem = %lu, ptr = %lu\n",
+			dsp->storage.mem, dsp->storage.last_mem, ptr
+		);
+		return;
+	}
+	GUI_StorageElement* el = ptr - sizeof(GUI_StorageElement);
+	GUI_StorageElement* prev = el->prev;
+	if (prev) {
+		prev->next = el->next;
+	}
+	GUI_StorageHash* sth = &dsp->storage.hash[el->size];
+	el->status = GUI_NONE;
+	sth->free_cnt++;
+	sth->cnt--;
+
+	if (sth->last_free) {
+		sth->last_free->next = el;
+	}
+
+	el->prev = sth->last_free;
+	el->next = NULL;
+	sth->last_free = el;
 }
 
 GUI_IndexResult GUI_dispatcher_find_item(
@@ -99,7 +168,7 @@ void GUI_dispatcher_list_items(GUI_Dispatcher* dsp)
 {
 	static char* item_type_labels[] = {
 		"None", "Window", "Caption", "Button", "Group", "TabGroup", "Tab", "Checkbox",
-		"DisplayPanel", "HSlider", "ContentPane", "PlaceHolder", "BoundingBox"
+		"DisplayPanel", "HSlider", "ContentPane", "PlaceHolder", "BoundingBox", "ComboBox"
 	};
 	printf("item cnt: %lu\n", dsp->item_cnt);
 	printf("max uid: %lu\n", dsp->uid);

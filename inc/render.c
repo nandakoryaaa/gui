@@ -114,9 +114,14 @@ void GUI_render_displaypanel(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemReco
 	}
 	shape = panel->shape == NULL ? ctx->shape_body : panel->shape;
 	GUI_Rect rect = GUI_render_shape(ctx, irec->rect, color, shape);
-	GUI_render_text(ctx, rect.x, rect.y - 20, ctx->current_color->fg, panel->label, GUI_font08x16);
-	GUI_render_number(ctx, rect.x + 4, rect.y + 4, color->fg, panel->ivalue, GUI_font08x16);
-	
+	if (panel->label != NULL) {
+		GUI_render_text(ctx, rect.x, rect.y - 20, ctx->current_color->fg, panel->label, GUI_font08x16);
+	}
+	if (panel->svalue == NULL) {
+		GUI_render_number(ctx, rect.x + 4, rect.y + 4, color->fg, panel->ivalue, GUI_font08x16);
+	} else {
+		GUI_render_text(ctx, rect.x + 4, rect.y + 4, color->fg, panel->svalue, GUI_font08x16);
+	}
 }
 
 void GUI_render_caption(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemRecord* irec)

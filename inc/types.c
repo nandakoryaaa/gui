@@ -21,7 +21,7 @@ typedef enum {
 	GUI_ITEM_NONE, GUI_ITEM_WINDOW, GUI_ITEM_CAPTION, GUI_ITEM_BUTTON,
 	GUI_ITEM_GROUP, GUI_ITEM_TABGROUP, GUI_ITEM_TAB, GUI_ITEM_CHECKBOX,
 	GUI_ITEM_DISPLAYPANEL, GUI_ITEM_HSLIDER, GUI_ITEM_CONTENTPANE,
-	GUI_ITEM_PLACEHOLDER, GUI_ITEM_BOUNDINGBOX
+	GUI_ITEM_PLACEHOLDER, GUI_ITEM_BOUNDINGBOX, GUI_ITEM_COMBOBOX
 } GUI_ItemType;
 
 typedef enum {
@@ -33,7 +33,7 @@ typedef enum {
 typedef enum {
 	GUI_CMD_NONE, GUI_CMD_OK, GUI_CMD_CLOSE, GUI_CMD_CANCEL,
 	GUI_CMD_INCVAL, GUI_CMD_DECVAL,	GUI_CMD_SETVAL,
-	GUI_CMD_SETCOLOR
+	GUI_CMD_SETCOLOR, GUI_CMD_COMBO
 } GUI_CommandType;
 
 typedef struct {
@@ -141,6 +141,28 @@ typedef struct {
 	GUI_Color* current_color;
 } GUI_Context;
 
+typedef struct GUI_StorageElement GUI_StorageElement;
+struct GUI_StorageElement {
+	uint16_t size;
+	uint16_t status;
+	GUI_StorageElement* prev;
+	GUI_StorageElement* next;
+};
+
+typedef struct {
+	uint16_t cnt;
+	uint16_t free_cnt;
+	GUI_StorageElement* last_used;
+	GUI_StorageElement* last_free;
+} GUI_StorageHash;
+
+typedef struct {
+	size_t size;
+	void* mem;
+	void* last_mem;
+	GUI_StorageHash hash[256];
+} GUI_Storage;
+
 typedef struct {
 	size_t uid_cnt;
 	uint16_t item_cnt;
@@ -153,4 +175,5 @@ typedef struct {
 	size_t last_target;
 	uint16_t origin_x;
 	uint16_t origin_y;
+	GUI_Storage storage;
 } GUI_Dispatcher;
