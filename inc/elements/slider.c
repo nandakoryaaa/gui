@@ -6,9 +6,47 @@ typedef struct {
 	GUI_CommandType command_type;
 } GUI_Slider;
 
-typedef enum {
-	GUI_SLIDER_NONE, GUI_SLIDER_BTN1, GUI_SLIDER_BTN2, GUI_SLIDER_THUMB, GUI_SLIDER_BAND
-} GUI_SliderTargetType;
+GUI_ItemTree GUI_slider_create(
+	GUI_Dispatcher* dsp, GUI_ID id, GUI_Rect rect,
+	int32_t min, int32_t max, int32_t value, GUI_CommandType command_type, int use_buttons
+) {
+	GUI_ItemTree* subtree;
+	if (use_buttons) {
+		uint16_t h = rect.h - 4;
+		GUI_Button* btn1 = GUI_dispatcher_allocate_element(dsp, sizeof(GUI_Button));
+		*btn1 = (GUI_Button) { .text = "<", .command_type = GUI_CMD_INCVAL, .value = -10 };
+		GUI_Button* btn2 = GUI_dispatcher_allocate_element(dsp, sizeof(GUI_Button));
+		*btn2 = (GUI_Button) { .text = ">", .command_type = GUI_CMD_INCVAL, .value = 10 };
+		subtree = GUI_dispatcher_allocate_element(dsp, sizeof(GUI_ItemTree) * 2);
+		subtree[0] = (GUI_ItemTree) {
+			.item = {
+				.type = GUI_ITEM_BUTTON, .status = GUI_STATUS_VSHA,
+				.rect = { 2, 2, h, h },
+				.element = btn1, .return_state = GUI_EVENT_CMD
+			}
+		};
+		subtree[1] = (GUI_ItemTree) {
+			.item = {
+				.type = GUI_ITEM_BUTTON, .status = GUI_STATUS_VSHA,
+				.rect = { -rect.h + 2, 2, h, h },
+				.element = btn2, .return_state = GUI_EVENT_CMD
+			}
+		};
+	}
+
+	GUI_Slider* slider = GUI_dispatcher_allocate_element(dsp, sizeof(GUI_Slider));
+	*slider = (GUI_Slider) { .min = min, .max = max, .value = value, .command_type = command_type }; 
+
+	return (GUI_ItemTree) {
+		.item = {
+			.id = id, .type = GUI_ITEM_HSLIDER, .status = GUI_STATUS_VSDA,
+			.rect = rect,
+			.element = slider
+		},
+		.child_cnt = use_buttons ? 2 : 0,
+		.subtree = use_buttons ? subtree : NULL
+	};
+}
 
 GUI_Rect GUI_slider_adjust_rect(GUI_Slider* slider, GUI_Rect rect)
 {
