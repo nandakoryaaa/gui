@@ -142,26 +142,32 @@ int main(int argc, char* argv[])
 		.color_caption_active = &color_caption,
 		.color_caption_passive = &color_caption,
 		.color_button_active = &color_body,
-		.color_button_passive = & color_body,
+		.color_button_passive = &color_body,
 		.color_button_hover = &color_button_hover,
 		.color_button_down = &color_button_down,
+		.color_list_active = &color_list,
+		.color_list_passive = &color_list,
 		.shape_body = &shape_body,
 		.shape_caption = &shape_caption,
 		.shape_button = &shape_button,
 		.shape_button_down = &shape_button_down,
+		.shape_list = &shape_list,
 		.font_body = GUI_font08x16,
 		.font_caption = GUI_font08x16,
 		.font_button = GUI_font08x16,
-		.current_color = ctx.color_body_active
+		.current_color = ctx.color_body_active,
+		.color_panel_active = &color_panel_active,
+		.color_panel_passive = &color_panel_passive,
+		.shape_panel = &shape_panel
 	};
 
-	GUI_Dispatcher dispatcher = {};
+	GUI_Dispatcher dispatcher = { .ctx = &ctx };
 	GUI_dispatcher_init(&dispatcher, 1024 * 512);
 
 	#include "inc/layout.c"
 
-	GUI_dispatcher_push_tree(&dispatcher, &layout);
-	GUI_dispatcher_fix_rects(&ctx, &dispatcher);
+	GUI_dispatcher_push_tree(&dispatcher, &layout_win1);
+	GUI_dispatcher_push_tree(&dispatcher, &layout_win2);
 
 	//GUI_dispatcher_list_items(&dispatcher);
 

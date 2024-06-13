@@ -1,13 +1,7 @@
-GUI_ItemTree layout = {
+GUI_ItemTree layout_win1 = {
 	.item = {
 		ID_WIN1, GUI_ITEM_WINDOW, GUI_STATUS_VSDA, { 280, 160, 400, 400 },
-		&(GUI_Window) {
-			.color_active = NULL,
-			.color_passive = NULL,
-			.shape = NULL,
-			.font = NULL,
-			.title = "Hello GUI"
-		}
+		&(GUI_Window) {	.title = "Window 1"	}
 	},
 	.child_cnt = 2,
 	.subtree = &(GUI_ItemTree[]) {
@@ -16,12 +10,12 @@ GUI_ItemTree layout = {
 				ID_CAPTION, GUI_ITEM_CAPTION, GUI_STATUS_VSDA, { 0, 0, 0, 40 },
 				&(GUI_Caption) {
 					&(GUI_Color) { .bg = 0x808080, .fg = 0xffffff },
-					NULL, NULL, NULL, "Hello GUI"
+					NULL, NULL, NULL, "Window 1"
 				}, .return_state = GUI_EVENT_DRAG
 			},
 			.child_cnt = 1,
 			.subtree = & (GUI_ItemTree[]) {
-				GUI_button_create(&dispatcher, ID_NONE, (GUI_Rect) { -34, 8, 24, 24 }, "x", GUI_CMD_CLOSE, 0)
+				GUI_button_create(&dispatcher, ID_NONE, (GUI_Rect) { -32, 8, 24, 24 }, "x", GUI_CMD_CLOSE, 0)
 			}[0]
 		}, {
 			.item = {
@@ -143,5 +137,32 @@ GUI_ItemTree layout = {
 				}
 			}[0]
 		}
+	}[0]
+};
+
+GUI_ItemTree layout_win2 = {
+	.item = {
+		ID_WIN1, GUI_ITEM_WINDOW, GUI_STATUS_VSDA, { 100, 100, 240, 200 },
+		&(GUI_Window) { .title = "Window 2" }
+	},
+	.child_cnt = 2,
+	.subtree = &(GUI_ItemTree[]) {
+		{
+			.item = {
+				ID_NONE, GUI_ITEM_CAPTION, GUI_STATUS_VSDA, { 0, 0, 0, 40 },
+				&(GUI_Caption) {
+					&(GUI_Color) { .bg = 0x808080, .fg = 0xffffff },
+					NULL, NULL, NULL, "Window 2"
+				}, .return_state = GUI_EVENT_DRAG
+			},
+			.child_cnt = 1,
+			.subtree = & (GUI_ItemTree[]) {
+				GUI_button_create(&dispatcher, ID_NONE, (GUI_Rect) { -32, 8, 24, 24 }, "x", GUI_CMD_CLOSE, 0)
+			}[0]
+		},
+		GUI_combobox_create(
+			&dispatcher, ID_NONE, (GUI_Rect) { 20, 40, 180, 32 },
+			7, 1, (char*[]){ "item 1", "item 2", "item 3", "item 4", "item 5", "item 6", "item 7" }
+		)
 	}[0]
 };
