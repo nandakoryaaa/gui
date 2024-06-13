@@ -12,6 +12,9 @@ typedef enum {
 	GUI_STATUS_DRAGGABLE = 32,
 	GUI_STATUS_HOVER = 64, GUI_STATUS_DOWN = 128,
 	GUI_STATUS_DRAG = 256, GUI_STATUS_SELECTED = 512,
+	GUI_STATUS_VOLATILE = 1024,
+	GUI_STATUS_CLEAR = ~(GUI_STATUS_HOVER | GUI_STATUS_DOWN | GUI_STATUS_DRAG),
+	GUI_STATUS_DRAGREADY = (GUI_STATUS_DOWN | GUI_STATUS_DRAGGABLE),
 	GUI_STATUS_VA = 6, GUI_STATUS_VDA = 38,
 	GUI_STATUS_VSA = 14, GUI_STATUS_VSHA = 30,
 	GUI_STATUS_VSDA = 46, GUI_STATUS_VSDHA = 62
@@ -21,7 +24,8 @@ typedef enum {
 	GUI_ITEM_NONE, GUI_ITEM_WINDOW, GUI_ITEM_CAPTION, GUI_ITEM_BUTTON,
 	GUI_ITEM_GROUP, GUI_ITEM_TABGROUP, GUI_ITEM_TAB, GUI_ITEM_CHECKBOX,
 	GUI_ITEM_DISPLAYPANEL, GUI_ITEM_HSLIDER, GUI_ITEM_CONTENTPANE,
-	GUI_ITEM_PLACEHOLDER, GUI_ITEM_BOUNDINGBOX, GUI_ITEM_COMBOBOX
+	GUI_ITEM_PLACEHOLDER, GUI_ITEM_BOUNDINGBOX, GUI_ITEM_COMBOBOX,
+	GUI_ITEM_LIST
 } GUI_ItemType;
 
 typedef enum {
@@ -31,9 +35,9 @@ typedef enum {
 } GUI_EventType;
 
 typedef enum {
-	GUI_CMD_NONE, GUI_CMD_OK, GUI_CMD_CLOSE, GUI_CMD_CANCEL,
+	GUI_CMD_NONE, GUI_CMD_CANCEL, GUI_CMD_OK, GUI_CMD_OPEN, GUI_CMD_CLOSE, 
 	GUI_CMD_INCVAL, GUI_CMD_DECVAL,	GUI_CMD_SETVAL,
-	GUI_CMD_SETCOLOR, GUI_CMD_COMBO
+	GUI_CMD_SETCOLOR
 } GUI_CommandType;
 
 typedef struct {
@@ -97,7 +101,7 @@ typedef struct {
 typedef struct {
 	GUI_Result result;
 	size_t uid_index;
-	size_t item_index;
+	size_t index;
 } GUI_TargetResult;
 
 typedef struct {
@@ -131,10 +135,16 @@ typedef struct {
 	GUI_Color* color_button_passive;
 	GUI_Color* color_button_hover;
 	GUI_Color* color_button_down;
+	GUI_Color* color_panel_active;
+	GUI_Color* color_panel_passive;
+	GUI_Color* color_list_active;
+	GUI_Color* color_list_passive;
 	GUI_Shape* shape_body;
 	GUI_Shape* shape_caption;
 	GUI_Shape* shape_button;
 	GUI_Shape* shape_button_down;
+	GUI_Shape* shape_panel;
+	GUI_Shape* shape_list;
 	void* font_body;
 	void* font_caption;
 	void* font_button;
@@ -172,8 +182,10 @@ typedef struct {
 	GUI_ItemStatus state;
 	size_t last_uid_index;
 	size_t last_index;
-	size_t last_target;
+	GUI_EventType volatile_evt;
+	size_t volatile_index;
 	uint16_t origin_x;
 	uint16_t origin_y;
+	GUI_Context* ctx;
 	GUI_Storage storage;
 } GUI_Dispatcher;

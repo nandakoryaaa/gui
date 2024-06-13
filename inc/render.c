@@ -1,6 +1,23 @@
 GUI_Rect GUI_render_shape(GUI_Context* ctx, SDL_Rect rect, GUI_Color* color, GUI_Shape* shape)
 {
-	uint16_t bump = shape->bump_out;
+	uint16_t bump = shape->outline;
+	if (bump) {
+		SDL_Rect r = { rect.x, rect.y, rect.w, bump };
+		rect.h -= bump << 1;
+		rect.w -= bump << 1;
+		rect.y += bump;
+		SDL_FillRect(ctx->surf, &r, color->outline);
+		r.y += rect.h + bump;
+		SDL_FillRect(ctx->surf, &r, color->outline);
+		r.y = rect.y;
+		r.w = bump;
+		r.h = rect.h;
+		SDL_FillRect(ctx->surf, &r, color->outline);
+		rect.x += bump;
+		r.x += rect.w + bump;
+		SDL_FillRect(ctx->surf, &r, color->outline);
+	}		
+	bump = shape->bump_out;
 	if (bump) {
 		SDL_Rect r = { rect.x, rect.y, rect.w, bump };
 		rect.h -= bump << 1;
@@ -319,6 +336,28 @@ void GUI_render_tabgroup(GUI_Dispatcher* dsp, GUI_Context* ctx, size_t index)
 	}
 }
 
+void GUI_render_item_list(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemRecord* irec)
+{
+	GUI_Color* color;
+	GUI_Shape* shape;
+
+	GUI_ItemList* itemlist = (GUI_ItemList*) irec->item.element;
+	if (irec->item.status & GUI_STATUS_ACTIVE) {
+		color = ctx->color_list_active;
+	} else {
+		color = ctx->color_list_passive;
+	}
+
+	GUI_Rect rect = GUI_render_shape(ctx, irec->rect, color, ctx->shape_list);
+	SDL_Rect selected_rect = { rect.x, rect.y + itemlist->pos * 20, rect.w, 20 };
+	SDL_FillRect(ctx->surf, &selected_rect, color->dark);
+	for (uint16_t i = 0; i < itemlist->cnt; i++) {
+		uint32_t c = i == itemlist->pos ? color->light : color->fg; 
+		GUI_render_text(ctx, rect.x + 4, rect.y + 2, c, itemlist->items[i], GUI_font08x16);
+		rect.y += 20;
+	}
+}
+
 void GUI_render_placeholder(GUI_Dispatcher* dsp, GUI_Context* ctx, GUI_ItemRecord* irec)
 {
 	GUI_Placeholder* ph = irec->item.element;
@@ -402,6 +441,9 @@ void GUI_render_item_recursive(GUI_Dispatcher* dsp, GUI_Context* ctx, size_t ind
 			break;
 		case GUI_ITEM_PLACEHOLDER:
 			GUI_render_placeholder(dsp, ctx, irec);
+			break;
+		case GUI_ITEM_LIST:
+			GUI_render_item_list(dsp, ctx, irec);
 			break;
 	}
 

@@ -45,6 +45,8 @@ GUI_ComboEvent GUI_dispatcher_process_target_button(
 				cevt.cmd.value = btn->value;
 			}
 		}
+	} else {
+		cevt.type = GUI_EVENT_NONE;
 	}
 
 	return cevt;
