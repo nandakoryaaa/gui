@@ -142,7 +142,7 @@ GUI_ItemTree layout_win1 = {
 
 GUI_ItemTree layout_win2 = {
 	.item = {
-		ID_WIN1, GUI_ITEM_WINDOW, GUI_STATUS_VSDA, { 100, 100, 240, 200 },
+		ID_WIN2, GUI_ITEM_WINDOW, GUI_STATUS_VSDA, { 100, 100, 240, 200 },
 		&(GUI_Window) { .title = "Window 2" }
 	},
 	.child_cnt = 2,

@@ -14,7 +14,7 @@
 #define WIN_H 720
 
 typedef enum {
-	ID_NONE, ID_BTN_CLOSE, ID_WIN1, ID_CAPTION, ID_TABGROUP,
+	ID_NONE, ID_BTN_CLOSE, ID_WIN1, ID_WIN2, ID_CAPTION, ID_TABGROUP,
 	ID_CB1, ID_CB2, ID_CB3,
 	ID_PANEL1, ID_BTN1, ID_BTN2,
 	ID_TEST, ID_HSLIDER_R, ID_HSLIDER_G, ID_HSLIDER_B,
@@ -26,13 +26,16 @@ typedef enum {
 #include "inc/dispatcher.c"
 #include "inc/render.c"
 
+static struct ModelMain {
+	int quit;
+} model_main;
+
 static struct ModelWin1 {
 	GUI_ID ids[3];
 	int* flags[3];
 	int cb1, cb2, cb3;
 	int cb1_on, cb2_on, cb3_on;
 	int counter;
-	int quit;
 } model_win1 = {
 	.ids = {
 		ID_CB1, ID_CB2, ID_CB3
@@ -40,25 +43,24 @@ static struct ModelWin1 {
 	.flags = {
 		&model_win1.cb1_on, &model_win1.cb2_on, &model_win1.cb3_on
 	},
-	.cb1 = 1, .cb2 = 2, .cb3 = 3,
-	.quit = 0
+	.cb1 = 1, .cb2 = 2, .cb3 = 3
 };
 
 void set_caption_color_win1(GUI_Dispatcher* dsp)
 {
-	GUI_IndexResult ir = GUI_dispatcher_find_item(dsp, dsp->last_uid_index, ID_HSLIDER_R);
+	GUI_IndexResult ir = GUI_dispatcher_find_item_by_id(dsp, dsp->last_uid_index, ID_HSLIDER_R);
 	uint32_t color = ((GUI_Slider*)(dsp->items[ir.index].item.element))->value;
-	ir = GUI_dispatcher_find_item(dsp, dsp->last_uid_index, ID_HSLIDER_G);
+	ir = GUI_dispatcher_find_item_by_id(dsp, dsp->last_uid_index, ID_HSLIDER_G);
 	color = (color << 8) + ((GUI_Slider*)(dsp->items[ir.index].item.element))->value;
-	ir = GUI_dispatcher_find_item(dsp, dsp->last_uid_index, ID_HSLIDER_B);
+	ir = GUI_dispatcher_find_item_by_id(dsp, dsp->last_uid_index, ID_HSLIDER_B);
 	color = (color << 8) + ((GUI_Slider*)(dsp->items[ir.index].item.element))->value;
-	ir = GUI_dispatcher_find_item(dsp, dsp->last_uid_index, ID_CAPTION);
+	ir = GUI_dispatcher_find_item_by_id(dsp, dsp->last_uid_index, ID_CAPTION);
 	((GUI_Caption*)(dsp->items[ir.index].item.element))->color_active->bg = color;
 }
 
 void update_display_panel_win1(GUI_Dispatcher* dsp, GUI_Command cmd)
 {
-	GUI_IndexResult ir = GUI_dispatcher_find_item(dsp, dsp->last_uid_index, ID_PANEL1);
+	GUI_IndexResult ir = GUI_dispatcher_find_item_by_id(dsp, dsp->last_uid_index, ID_PANEL1);
 	if (ir.result == GUI_OK) {
 		GUI_DisplayPanel* dp = dsp->items[ir.index].item.element;
 		if (cmd.type == GUI_CMD_DECVAL) {
@@ -79,9 +81,6 @@ void process_win1(GUI_Dispatcher* dsp, GUI_ComboEvent cevt, struct ModelWin1* mo
 		switch (cevt.cmd.type) {
 			case GUI_CMD_SETCOLOR:
 				set_caption_color_win1(dsp);
-				break;
-			case GUI_CMD_CLOSE:
-				model->quit = 1;
 				break;
 			case GUI_CMD_INCVAL:
 			case GUI_CMD_DECVAL:
@@ -105,13 +104,31 @@ void process_win1(GUI_Dispatcher* dsp, GUI_ComboEvent cevt, struct ModelWin1* mo
 	}
 }
 
-void route_item(GUI_Dispatcher* dsp, GUI_ComboEvent cevt)
+void process_win2(GUI_Dispatcher* dsp, GUI_ComboEvent cevt)
 {
-	GUI_ItemRecord* irec = &dsp->items[dsp->last_uid_index];
+	//printf("win2 processing\n");
+}
+
+void route_item(GUI_Dispatcher* dsp, GUI_ComboEvent cevt, struct ModelMain* model)
+{
+	uint16_t index = dsp->uids[dsp->last_uid_index].item_index;
+	GUI_ItemRecord* irec = &dsp->items[index];
+
+	if (cevt.type == GUI_EVENT_CMD) {
+		if (cevt.cmd.type == GUI_CMD_CLOSE) {
+			GUI_dispatcher_remove_tree(dsp, dsp->last_uid_index);
+			if (dsp->uid_cnt == 0) {
+				model->quit = 1;
+			}
+			return;
+		}
+	}
 
 	if (irec->item.id == ID_WIN1) {
 		process_win1(dsp, cevt, &model_win1);
-	}
+	} else if (irec->item.id == ID_WIN2) {
+		process_win2(dsp, cevt);
+	}		
 }
 
 int main(int argc, char* argv[])
@@ -166,27 +183,26 @@ int main(int argc, char* argv[])
 
 	#include "inc/layout.c"
 
-	GUI_dispatcher_push_tree(&dispatcher, &layout_win1);
-	GUI_dispatcher_push_tree(&dispatcher, &layout_win2);
-
+	GUI_UID uid1 = GUI_dispatcher_push_tree(&dispatcher, &layout_win1);
+	GUI_UID uid2 = GUI_dispatcher_push_tree(&dispatcher, &layout_win2);
 	//GUI_dispatcher_list_items(&dispatcher);
 
 	GUI_render(&dispatcher, &ctx);
 	SDL_UpdateWindowSurface(window);
 	SDL_Event event;
-
-	while (!model_win1.quit) {
+	uint32_t redraw_cnt = 0;
+	while (!model_main.quit) {
 		uint16_t needs_redraw = 0;
 		while (SDL_PollEvent(&event)) {
 			if (event.type == SDL_QUIT) {
-				model_win1.quit = 1;
+				model_main.quit = 1;
 				break;
 			}
 			GUI_Event gui_event = GUI_convert_event(&event);
 			if (gui_event.type != GUI_EVENT_NONE) {
 				GUI_ComboEvent cevt = GUI_dispatcher_process_event(&dispatcher, gui_event);
 				if (cevt.type != GUI_EVENT_NONE) {
-					route_item(&dispatcher, cevt);
+					route_item(&dispatcher, cevt, &model_main);
 				}
 				if (cevt.result == GUI_OK) {
 					needs_redraw = 1;
@@ -194,6 +210,8 @@ int main(int argc, char* argv[])
 			}
 		}
 		if (needs_redraw) {
+			redraw_cnt++;
+			//printf("redraw %u\n", redraw_cnt);
 			GUI_render(&dispatcher, &ctx);
 			SDL_UpdateWindowSurface(window);
 		}

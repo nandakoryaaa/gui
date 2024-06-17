@@ -64,13 +64,13 @@ void* GUI_dispatcher_allocate_element(GUI_Dispatcher* dsp, uint16_t size)
 	return (void*) new + sizeof(GUI_StorageElement);
 }
 
-void GUI_dispatcher_free_storage(GUI_Dispatcher* dsp, void* ptr)
+void GUI_dispatcher_free_element(GUI_Dispatcher* dsp, void* ptr)
 {
 	if (ptr < dsp->storage.mem || ptr >= dsp->storage.last_mem) {
-		printf(
-			"element was not allocated: mem = %lu, last_mem = %lu, ptr = %lu\n",
-			(size_t) dsp->storage.mem, (size_t) dsp->storage.last_mem, (size_t) ptr
-		);
+		//printf(
+		//	"element was not allocated: mem = %lu, last_mem = %lu, ptr = %lu\n",
+		//	(size_t) dsp->storage.mem, (size_t) dsp->storage.last_mem, (size_t) ptr
+		//);
 		return;
 	}
 	GUI_StorageElement* el = ptr - sizeof(GUI_StorageElement);
@@ -79,7 +79,7 @@ void GUI_dispatcher_free_storage(GUI_Dispatcher* dsp, void* ptr)
 		prev->next = el->next;
 	}
 	GUI_StorageHash* sth = &dsp->storage.hash[el->size];
-//	printf("freeing %lu bytes at %lu\n", el->size, el);
+	//printf("freeing %u bytes at %lu\n", el->size, (uint64_t) el);
 	el->status = GUI_NONE;
 	sth->free_cnt++;
 	sth->cnt--;
@@ -93,7 +93,7 @@ void GUI_dispatcher_free_storage(GUI_Dispatcher* dsp, void* ptr)
 	sth->last_free = el;
 }
 
-GUI_IndexResult GUI_dispatcher_find_item(
+GUI_IndexResult GUI_dispatcher_find_item_by_id(
 	GUI_Dispatcher* dsp, size_t uid_index, GUI_ID id
 ) {
 	size_t index = dsp->uids[uid_index].item_index;
@@ -108,20 +108,15 @@ GUI_IndexResult GUI_dispatcher_find_item(
 	return (GUI_IndexResult) { GUI_ERROR };
 }
 
-GUI_IndexResult GUI_dispatcher_find_next_child(
-	GUI_Dispatcher* dsp, GUI_ItemType type, size_t parent_index, size_t index
-) {
-	size_t end_index = parent_index + 1 + dsp->items[parent_index].child_cnt;
-	if (index <= parent_index || index >= end_index) {
-		return (GUI_IndexResult) { GUI_ERROR };
-	}
-	while (index < end_index) {
-		if (dsp->items[index].item.type == type) {
-			return (GUI_IndexResult) { GUI_OK, index };
+GUI_IndexResult GUI_dispatcher_find_uid_index(GUI_Dispatcher* dsp, GUI_UID uid)
+{
+	for (uint16_t i = 0; i < dsp->uid_cnt; i++) {
+		if (dsp->uids[i].uid == uid) {
+			return (GUI_IndexResult) { GUI_OK, i };
 		}
-		index++;
 	}
-	return (GUI_IndexResult) { GUI_NONE };
+
+	return (GUI_IndexResult) { GUI_ERROR };
 }
 
 void GUI_dispatcher_fix_rects_recursive(
@@ -189,6 +184,18 @@ uint16_t GUI_dispatcher_push_recursive(GUI_Dispatcher* dsp, GUI_ItemTree* it, si
 	return cnt + 1;
 }
 
+void GUI_dispatcher_move_tree_to_top(GUI_Dispatcher* dsp, uint16_t uid_index)
+{
+	if (!dsp->uid_cnt || dsp->uid_cnt - 1 == uid_index) {
+		return;
+	}
+	GUI_UIDRecord urec = dsp->uids[uid_index];
+	for (uint16_t i = uid_index; i < dsp->uid_cnt - 1; i++) {
+		dsp->uids[i] = dsp->uids[i + 1];
+	}
+	dsp->uids[dsp->uid_cnt - 1] = urec;
+}
+
 GUI_UID GUI_dispatcher_push_tree(GUI_Dispatcher* dsp, GUI_ItemTree* it)
 {
 	uint16_t item_cnt = dsp->item_cnt;
@@ -206,14 +213,28 @@ GUI_UID GUI_dispatcher_push_tree(GUI_Dispatcher* dsp, GUI_ItemTree* it)
 	return uid;
 }
 
-void GUI_dispatcher_remove_tree(GUI_Dispatcher* dsp, size_t index)
+void GUI_dispatcher_remove_tree(GUI_Dispatcher* dsp, uint16_t uid_index)
 {
-	GUI_ItemRecord* irec = &dsp->items[index];
-	GUI_dispatcher_free_storage(dsp, irec->item.element);
-	for (uint16_t i = 0; i < irec->subtree_cnt; i++) {
-		index++;
-		GUI_dispatcher_free_storage(dsp, dsp->items[index].item.element);
+	GUI_UIDRecord urec = dsp->uids[uid_index];
+	uint16_t index = urec.item_index;
+	dsp->uid_cnt--;
+	for (uint16_t i = uid_index; i < dsp->uid_cnt; i++) {
+		dsp->uids[i] = dsp->uids[i + 1];
 	}
+	uint16_t subtree_cnt = dsp->items[index].subtree_cnt + 1;
+	for (uint16_t i = 0; i < dsp->uid_cnt; i++) {
+		if (dsp->uids[i].item_index > index) {
+			dsp->uids[i].item_index -= subtree_cnt;
+		}
+	}
+	for (uint16_t i = 0; i < subtree_cnt; i++) {
+		GUI_dispatcher_free_element(dsp, dsp->items[index + i].item.element);
+	}
+	dsp->item_cnt -= subtree_cnt;
+	for (uint16_t i = index; i < dsp->item_cnt; i++) {
+		dsp->items[i] = dsp->items[i + subtree_cnt];
+	}
+	printf("dsp item cnt: %u\n", dsp->item_cnt);
 }
 
 void GUI_dispatcher_list_items(GUI_Dispatcher* dsp)
@@ -329,7 +350,6 @@ GUI_ComboEvent GUI_dispatcher_process_target_recursive(
 	return cevt;
 }
 
-
 void GUI_dispatcher_set_tree_status(
 	GUI_Dispatcher* dsp, uint16_t index, GUI_ItemStatus status
 ) {
@@ -359,9 +379,9 @@ void GUI_dispatcher_remove_volatile(GUI_Dispatcher* dsp)
 	if (irec->item.type == GUI_ITEM_LIST) {
 		GUI_itemlist_close(dsp, irec->item.element);
 	}
-	dsp->uid_cnt--;
-	dsp->item_cnt = dsp->volatile_index;
-	GUI_dispatcher_remove_tree(dsp, dsp->item_cnt);
+//	dsp->uid_cnt--;
+//	dsp->item_cnt = dsp->volatile_index;
+	GUI_dispatcher_remove_tree(dsp, dsp->uid_cnt - 1);
 }
 
 GUI_Result GUI_dispatcher_check_volatile(GUI_Dispatcher* dsp, GUI_Event evt)
@@ -375,59 +395,59 @@ GUI_Result GUI_dispatcher_check_volatile(GUI_Dispatcher* dsp, GUI_Event evt)
 	return GUI_NONE;
 }
 
+GUI_Result GUI_dispatcher_switch_to(GUI_Dispatcher* dsp, uint16_t uid_index)
+{
+	if (dsp->uid_cnt - 1 != uid_index) {
+		GUI_dispatcher_move_tree_to_top(dsp, uid_index);
+		dsp->last_uid_index = dsp->uid_cnt - 1;
+		return GUI_OK;
+	}
+	return GUI_NONE;
+}
+
 GUI_ComboEvent GUI_dispatcher_process_event(GUI_Dispatcher* dsp, GUI_Event evt)
 {
 	GUI_TargetResult target = GUI_dispatcher_find_target(dsp, evt);
 	GUI_ComboEvent cevt = { .type = evt.type, .result = GUI_NONE, .evt = evt };
-	uint16_t state = (dsp->state != GUI_STATUS_NONE) | ((target.result == GUI_OK) << 1);
-	uint16_t same_target = (state == 3) & (dsp->last_index == target.index);
-
-	switch (state) {
-		case 0: // dsp state is none and target is none, nothing to do
-			return cevt;
-		case 1: // dsp state is some and target is none, clear dsp state
+	uint16_t old_state = dsp->state != GUI_STATUS_NONE;
+	uint16_t new_state = target.result == GUI_OK;
+	uint16_t same_target = !(old_state | new_state) | ((old_state & new_state) & (dsp->last_index == target.index));
+	if ((cevt.type == GUI_EVENT_MOVE) & old_state) { // check if we're dragging
+		if ((dsp->items[dsp->last_index].item.status & GUI_STATUS_DRAGREADY) == GUI_STATUS_DRAGREADY) {
+			cevt.type = GUI_EVENT_DRAG; // if draggable, new state does not matter
+			same_target = 1;
+		}
+	}
+	if (!same_target) {
+		if (old_state) { // clear old state if exists
 			dsp->items[dsp->last_index].item.status &= GUI_STATUS_CLEAR;
 			dsp->state = GUI_STATUS_NONE;
-			cevt.result = GUI_OK;
-			GUI_dispatcher_check_volatile(dsp, evt);
-			return cevt;
-		case 2: // dsp state is none and target is some, set dsp state
+		}
+		if (new_state) { // set new state if exists
 			dsp->last_uid_index = target.uid_index;
 			dsp->last_index = target.index;
 			dsp->state = GUI_STATUS_HOVER;
-			break;
-		case 3: // dsp state is some and target is some, update dsp state
-			if (cevt.type == GUI_EVENT_MOVE) {
-				if ((dsp->items[dsp->last_index].item.status & GUI_STATUS_DRAGREADY) == GUI_STATUS_DRAGREADY) {
-					cevt.type = GUI_EVENT_DRAG;
-				} else if (!same_target) {
-					dsp->items[dsp->last_index].item.status &= GUI_STATUS_CLEAR;
-					dsp->last_uid_index = target.uid_index;
-					dsp->last_index = target.index;
-					dsp->state = GUI_STATUS_HOVER;
-					cevt.result = GUI_OK;
-					GUI_dispatcher_check_volatile(dsp, evt);
-				}// else { // just moving inside last target, nothing to do
-					// return cevt;
-					// except when moving inside item list...
-				//}
-			} else if (cevt.type == GUI_EVENT_DOWN) {
-				dsp->state = GUI_STATUS_DOWN;
-				dsp->origin_x = evt.x;
-				dsp->origin_y = evt.y;
-				cevt.result = GUI_dispatcher_check_volatile(dsp, evt);
-			} else if (cevt.type == GUI_EVENT_UP) {
-				GUI_Item* item = &dsp->items[dsp->last_index].item;
-				GUI_ItemStatus was_down = item->status & GUI_STATUS_DOWN;
-				dsp->state = GUI_STATUS_HOVER;
-				item->status &= GUI_STATUS_CLEAR;
-				item->status |= GUI_STATUS_HOVER;
-				if (!was_down) {
-					return cevt;
-				}
-			}
+		}
+		GUI_dispatcher_check_volatile(dsp, evt);
+		cevt.result = GUI_OK;
 	}
-
-	dsp->items[dsp->last_index].item.status |= dsp->state;
-	return GUI_dispatcher_process_target_recursive(dsp, dsp->last_index, cevt);
+	if (cevt.type == GUI_EVENT_DOWN) {
+		dsp->state = GUI_STATUS_DOWN;
+		dsp->origin_x = evt.x;
+		dsp->origin_y = evt.y;
+		cevt.result = GUI_dispatcher_check_volatile(dsp, evt);
+		if (new_state && GUI_dispatcher_switch_to(dsp, target.uid_index)) {
+			cevt.result = GUI_OK;
+		}
+	} else if (cevt.type == GUI_EVENT_UP && new_state) {
+		GUI_Item* item = &dsp->items[dsp->last_index].item;
+		new_state = item->status & GUI_STATUS_DOWN;
+		dsp->state = GUI_STATUS_HOVER;
+		item->status &= GUI_STATUS_CLEAR;
+	}
+	if (new_state) {
+		dsp->items[dsp->last_index].item.status |= dsp->state;
+		return GUI_dispatcher_process_target_recursive(dsp, dsp->last_index, cevt);
+	}
+	return cevt;
 }
