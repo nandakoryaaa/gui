@@ -46,6 +46,7 @@ GUI_ItemTree GUI_itemlist_create(GUI_Dispatcher* dsp, GUI_ID id, size_t index)
 	GUI_ItemRecord* irec = &dsp->items[index];
 	GUI_ComboBox* cb = irec->item.element;
 	GUI_ItemList* itemlist = GUI_dispatcher_allocate_element(dsp, sizeof(GUI_ItemList));
+
 	*itemlist = (GUI_ItemList) {
 		.parent_index = index,
 		.cnt = cb->cnt,

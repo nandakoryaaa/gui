@@ -6,7 +6,7 @@ GUI_ComboEvent GUI_dispatcher_process_target_combobox(
 		if (cevt.cmd.type == GUI_CMD_OPEN) {
 			if (!(irec->item.status & GUI_STATUS_SELECTED)) {
 				GUI_ItemTree itemlist_tree = GUI_itemlist_create(dsp, ID_NONE, index);
-				dsp->volatile_index = dsp->item_cnt;
+				dsp->volatile_index = dsp->item_cnt; // it will be last index after itemlist is added
 				dsp->volatile_evt = GUI_EVENT_DOWN;
 				GUI_dispatcher_push_tree(dsp, &itemlist_tree);
 				GUI_dispatcher_set_tree_status(dsp, index, GUI_STATUS_VOLATILE);

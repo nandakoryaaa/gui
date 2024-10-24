@@ -2,7 +2,7 @@ typedef uint64_t GUI_UID;
 typedef SDL_Rect GUI_Rect;
 
 typedef enum {
-	GUI_ERROR, GUI_NONE, GUI_OK
+	GUI_ERROR, GUI_NONE, GUI_OK, GUI_PASS
 } GUI_Result;
 
 typedef enum {

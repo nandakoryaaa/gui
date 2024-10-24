@@ -379,8 +379,6 @@ void GUI_dispatcher_remove_volatile(GUI_Dispatcher* dsp)
 	if (irec->item.type == GUI_ITEM_LIST) {
 		GUI_itemlist_close(dsp, irec->item.element);
 	}
-//	dsp->uid_cnt--;
-//	dsp->item_cnt = dsp->volatile_index;
 	GUI_dispatcher_remove_tree(dsp, dsp->uid_cnt - 1);
 }
 
@@ -390,6 +388,8 @@ GUI_Result GUI_dispatcher_check_volatile(GUI_Dispatcher* dsp, GUI_Event evt)
 		if (!(dsp->items[dsp->last_index].item.status & GUI_STATUS_VOLATILE)) {
 			GUI_dispatcher_remove_volatile(dsp);
 			return GUI_OK;
+		} else {
+			return GUI_PASS;
 		}
 	}
 	return GUI_NONE;
@@ -436,8 +436,10 @@ GUI_ComboEvent GUI_dispatcher_process_event(GUI_Dispatcher* dsp, GUI_Event evt)
 		dsp->origin_x = evt.x;
 		dsp->origin_y = evt.y;
 		cevt.result = GUI_dispatcher_check_volatile(dsp, evt);
-		if (new_state && GUI_dispatcher_switch_to(dsp, target.uid_index)) {
-			cevt.result = GUI_OK;
+		if (cevt.result != GUI_PASS) {
+			if (new_state && GUI_dispatcher_switch_to(dsp, target.uid_index)) {
+				cevt.result = GUI_OK;
+			}
 		}
 	} else if (cevt.type == GUI_EVENT_UP && new_state) {
 		GUI_Item* item = &dsp->items[dsp->last_index].item;
